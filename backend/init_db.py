@@ -10,10 +10,10 @@ def create_admin():
         if not User.query.filter_by(role="Admin").first():
             print("Admin user not found, creating one...")
             admin = User(
-                email="admin@iitm.ac.in",
-                password=generate_password_hash("admin123", method="pbkdf2:sha256"),
-                role="Admin",
-                is_approved=True,
+                email="admin@iitm.ac.in",  # type: ignore
+                password=generate_password_hash("admin123", method="pbkdf2:sha256"),  # type: ignore
+                role="admin",  # type: ignore
+                is_active=True,  # type: ignore
             )
             db.session.add(admin)
             db.session.commit()

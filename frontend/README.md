@@ -36,9 +36,3 @@ bun dev
 ```sh
 bun run build
 ```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-bun test:unit
-```

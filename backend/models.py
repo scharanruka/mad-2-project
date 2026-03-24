@@ -10,8 +10,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False)  # (Admin, Company, Student)
-    is_approved = db.Column(db.Boolean, default=False)  # for Admin approval
+    role = db.Column(db.String(20), nullable=False)  # (admin, company, student)
+    is_active = db.Column(db.Boolean, default=True)  # for blacklisting
 
     # Relationships
     student_profile = db.relationship("Student", backref="user", uselist=False)
@@ -39,6 +39,7 @@ class Company(db.Model):
     website = db.Column(db.String(150))
     description = db.Column(db.Text)
     drives = db.relationship("PlacementDrive", backref="company", lazy=True)
+    is_approved = db.Column(db.Boolean, default=False)  # for Admin approval
 
 
 class PlacementDrive(db.Model):
@@ -51,6 +52,7 @@ class PlacementDrive(db.Model):
     deadline = db.Column(db.DateTime, nullable=False)
     min_cgpa = db.Column(db.Float, default=0.0)  # Eligibility validation
     status = db.Column(db.String(20), default="Pending")  # Pending/Approved/Closed
+    # TODO: no of open positions
     applications = db.relationship("Application", backref="drive", lazy=True)
 
 
