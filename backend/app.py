@@ -2,13 +2,13 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import (
     JWTManager,
-    # create_access_token,
-    jwt_required,
-    get_jwt_identity,
+    # jwt_required,
+    # get_jwt_identity,
 )
 
-from models import db, User, Student, Company, Application, PlacementDrive
+from models import db  # , User, Student, Company, Application, PlacementDrive
 from auth import auth_bp
+from admin import admin_bp
 # from werkzeug.security import generate_password_hash, check_password_hash
 
 
@@ -16,15 +16,19 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "secret-key"
 jwt = JWTManager(app)
 
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
+
 # enable CORS
 CORS(app, resources={r"/*": {"origins": "*"}})
+app.config["CORS_HEADERS"] = "Content-Type"
 
 # Configure the database
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = "mysecretkey"
 
-app.register_blueprint(auth_bp)
+
 db.init_app(app)
 
 
@@ -33,135 +37,167 @@ def hello():
     return jsonify("Hello!")
 
 
-# @app.route("/register/student", methods=["POST"])
-# def register_student():
-#     data = request.json
-#     if User.query.filter_by(email=data["email"]).first():
-#         return jsonify({"msg": "Username already exists"}), 400
-
-#     hashed_pw = generate_password_hash(data["password"])
-#     new_user = User(email=data["email"], password=hashed_pw, role="student")
-#     db.session.add(new_user)
-#     db.session.flush()
-
-#     new_student = Student(id=new_user.id, full_name=data["full_name"])
-#     db.session.add(new_student)
-#     db.session.commit()
-#     return jsonify({"msg": "Student registered successfully"}), 201
-
-
-# @app.route("/register/company", methods=["POST"])
-# def register_company():
-#     data = request.json
-#     if User.query.filter_by(email=data["email"]).first():
-#         return jsonify({"msg": "Username already exists"}), 400
-
-#     hashed_pw = generate_password_hash(data["password"])
-#     new_user = User(email=data["email"], password=hashed_pw, role="company")
-#     db.session.add(new_user)
-#     db.session.flush()
-
-#     new_company = Company(
-#         id=new_user.id,
-#         name=data["name"],
-#         industry=data["industry"],
-#         # is_approved=False,
-#     )
-#     db.session.add(new_company)
-#     db.session.commit()
-#     return jsonify({"msg": "Registration successful. Awaiting Admin approval."}), 201
-
-
-# @app.route("/login", methods=["POST"])
-# def login():
-#     data = request.json
-#     user = User.query.filter_by(email=data["email"]).first()
-
-#     if user and check_password_hash(user.password, data["password"]):
-#         # If company, check if approved by admin
-#         if user.role == "company":
-#             company = Company.query.filter_by(id=user.id).first()
-#             if not company.is_approved:
-#                 return jsonify({"msg": "Company account pending admin approval"}), 403
-
-#         access_token = create_access_token(
-#             identity={"email": user.email, "role": user.role}
-#         )
-#         return jsonify(access_token=access_token, role=user.role), 200
-
-#     return jsonify({"msg": "Bad Email or password"}), 401
-
+if __name__ == "__main__":
+    app.run(debug=True)
 
 # ------------------------------------
 # Admin
 
 
-def admin_required(fn):
-    @jwt_required()
-    def wrapper(*args, **kwargs):
-        if get_jwt_identity()["role"] != "admin":
-            return jsonify({"msg": "Admin access required"}), 403
-        return fn(*args, **kwargs)
+# def admin_required(fn):
+#     @jwt_required()
+#     def wrapper(*args, **kwargs):
+#         # get_jwt_identity() now returns the user_id string
+#         user_id = get_jwt_identity()
+#         user = User.query.get(int(user_id))
 
-    wrapper.__name__ = fn.__name__
-    return wrapper
+#         if not user or user.role != "admin":
+#             return jsonify({"msg": "Admin access required"}), 403
+#         return fn(*args, **kwargs)
 
-
-@app.route("/admin/stats", methods=["GET"])
-@admin_required
-def get_stats():
-    print("get stats..........")
-    return jsonify(
-        {
-            "total_students": Student.query.count(),
-            "total_companies": Company.query.count(),
-            "total_jobs": PlacementDrive.query.count(),
-            "total_applications": Application.query.count(),
-        }
-    )
+#     wrapper.__name__ = fn.__name__
+#     return wrapper
 
 
-@app.route("/admin/companies", methods=["GET"])
-@admin_required
-def get_all_companies():  # search
-    search = request.args.get("search", "")
-    query = Company.query.filter(
-        (Company.name.contains(search) | (Company.industry.contains(search)))
-    )
-    companies = [
-        {
-            "id": c.id,
-            "name": c.name,
-            "industry": c.industry,
-            "is_approved": c.is_approved,
-        }
-        for c in query.all()
-    ]
-    return jsonify(companies)
+# @app.route("/admin/stats", methods=["GET"])
+# @admin_required
+# def get_stats():
+
+#     return jsonify(
+#         {
+#             "total_students": Student.query.count(),
+#             "total_companies": Company.query.count(),
+#             "total_jobs": PlacementDrive.query.count(),
+#             "total_applications": Application.query.count(),
+#         }
+#     )
 
 
-@app.route("/admin/approve-company/<int:company_id>", methods=["POST"])
-@admin_required
-def approve_company(company_id):
-    company = Company.query.get_or_404(company_id)
-    company.is_approved = True
-    db.session.commit()
-    return jsonify({"msg": f"Company {company.name} approved"})
+# @app.route("/admin/companies", methods=["GET"])
+# @admin_required
+# def get_all_companies():  # search
+#     search = request.args.get("search", "")
+#     query = Company.query
+#     if search:
+#         query = query.filter(
+#             (Company.name.contains(search) | (Company.industry.contains(search)))
+#         )
+#     companies = [
+#         {
+#             "id": c.id,
+#             "name": c.name,
+#             "industry": c.industry,
+#             "is_approved": c.is_approved,
+#         }
+#         for c in query.all()
+#     ]
+#     return jsonify(companies)
 
 
-@app.route("/admin/user/<int:user_id>/toggle_status", methods=["POST"])
-@admin_required
-def toggle_user_status(user_id):
-    user = User.query.get_or_404(user_id)
-    # Admin can't deactive themselves
-    if user.role == "admin":
-        return jsonify({"msg": "Cannot deactive admin"}), 400
-
-    user.is_active = not user.is_active
-    db.session.commit()
-    status = "activated" if user.is_active else "blacklisted"
-    return jsonify({"msg": f"User {user.email} has been {status}"})
+# @app.route("/admin/approve-company/<int:company_id>", methods=["POST"])
+# @admin_required
+# def approve_company(company_id):
+#     company = Company.query.get_or_404(company_id)
+#     company.is_approved = True
+#     db.session.commit()
+#     return jsonify({"msg": f"Company {company.name} approved"})
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# @app.route("/admin/user/<int:user_id>/toggle_status", methods=["POST"])
+# @admin_required
+# def toggle_user_status(user_id):
+#     user = User.query.get_or_404(user_id)
+#     # Admin can't deactive themselves
+#     if user.role == "admin":
+#         return jsonify({"msg": "Cannot deactive admin"}), 400
+
+#     user.is_active = not user.is_active
+#     db.session.commit()
+#     status = "activated" if user.is_active else "blacklisted"
+#     return jsonify({"msg": f"User {user.email} has been {status}"})
+
+
+# @app.route("/admin/jobs/pending", methods=["GET"])
+# @admin_required
+# def get_pending_jobs():
+#     jobs = PlacementDrive.query.filter_by(status="Pending").all()
+#     return jsonify(
+#         [
+#             {
+#                 "id": j.id,
+#                 "company": j.company.name,
+#                 "title": j.title,
+#                 "salary": j.salary,
+#             }
+#             for j in jobs
+#         ]
+#     )
+
+
+# @app.route("/admin/job/<int:job_id>/approve", methods=["POST"])
+# @admin_required
+# def approve_job(job_id):
+#     job = PlacementDrive.query.get_or_404(job_id)
+#     job.status = "Approved"
+#     db.session.commit()
+#     return jsonify({"msg": "Job posting approved"})
+
+
+# if __name__ == "__main__":
+#     app.run(debug=True)
+
+
+# # Search students by name, ID, or username
+# @app.route("/admin/students", methods=["GET"])
+# @admin_required
+# def get_admin_students():
+#     search = request.args.get("search", "")
+#     query = Student.query.join(User).filter(
+#         (Student.full_name.contains(search))
+#         | (User.username.contains(search))
+#         | (User.id.contains(search))
+#     )
+#     return jsonify(
+#         [
+#             {
+#                 "id": s.user.id,
+#                 "name": s.full_name,
+#                 "username": s.user.username,
+#                 "is_active": s.user.is_active,
+#             }
+#             for s in query.all()
+#         ]
+#     )
+
+
+# # Blacklist any user
+# @app.route("/admin/user/<int:user_id>/toggle-active", methods=["POST"])
+# @admin_required
+# def toggle_active(user_id):
+#     user = User.query.get_or_404(user_id)
+#     if user.role == "admin":
+#         return jsonify({"msg": "Admin cannot be deactivated"}), 400
+
+#     user.is_active = not user.is_active
+#     db.session.commit()
+#     return jsonify({"msg": "Status updated", "is_active": user.is_active})
+
+
+# # View all Job Postings and Applications
+# @app.route("/admin/all-applications", methods=["GET"])
+# @admin_required
+# def get_all_applications():
+#     apps = Application.query.all()
+#     return jsonify(
+#         [
+#             {
+#                 "id": a.id,
+#                 "student": a.student.full_name,
+#                 "job_title": a.job.title,
+#                 "company": a.job.company.name,
+#                 "status": a.status,
+#                 "date": a.date_applied.strftime("%Y-%m-%d"),
+#             }
+#             for a in apps
+#         ]
+#     )

@@ -11,11 +11,11 @@
       </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Manage Companies</h5>
+        <h5 class="mb-0">Registered Companies</h5>
         <input
-          v-model="searchQuery"
+          v-model="companySearchQuery"
           @input="fetchCompanies"
           class="form-control w-25"
           placeholder="Search name/industry..."
@@ -35,15 +35,71 @@
             <tr v-for="company in companies" :key="company.id">
               <td>{{ company.name }}</td>
               <td>{{ company.industry }}</td>
-              <td>
-                <span :class="company.is_approved ? 'badge bg-success' : 'badge bg-warning'">
+              <td class="">
+                <span :class="company.is_approved ? 'badge bg-success px-3' : 'badge bg-info px-3'">
                   {{ company.is_approved ? 'Approved' : 'Pending' }}
+                </span>
+                <span :class="company.is_active ? 'badge bg-success' : 'badge bg-secondary'">
+                  {{ company.is_active ? 'Active' : 'Blacklisted' }}
+                </span>
+              </td>
+              <td>
+                <span>
+                  <button
+                    @click="toggle_approve(company.id)"
+                    :class="`btn btn-sm me-2  ${company.is_approved ? 'btn-outline-danger' : 'btn-outline-success'}`"
+                  >
+                    Approve
+                  </button>
+                </span>
+                <span>
+                  <button
+                    @click="toggle_blacklist(company.id)"
+                    :class="`btn btn-sm me-2  ${company.is_active ? 'btn-outline-secondary' : 'btn-outline-primary'}`"
+                  >
+                    Blacklist
+                  </button>
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Registered Students</h5>
+        <input
+          v-model="studentSearchQuery"
+          @input="fetchStudents"
+          class="form-control w-25"
+          placeholder="Search name/ID..."
+        />
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Branch</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="student in students" :key="student.id">
+              <td>{{ student.name }}</td>
+              <td>{{ student.branch }}</td>
+              <td>
+                <span :class="student.is_active ? 'badge bg-success' : 'badge bg-secondary'">
+                  {{ student.is_active ? 'Active' : 'Blacklisted' }}
                 </span>
               </td>
               <td>
                 <button
-                  v-if="!company.is_approved"
-                  @click="approve(company.id)"
+                  v-if="!student.is_active"
+                  @click="blacklist(student.id)"
                   class="btn btn-sm btn-outline-success me-2"
                 >
                   Approve
@@ -65,7 +121,9 @@ import { ref, onMounted } from 'vue'
 
 const stats = ref({})
 const companies = ref([])
-const searchQuery = ref('')
+const students = ref([])
+const companySearchQuery = ref('')
+const studentSearchQuery = ref('')
 
 const fetchStats = async () => {
   const res = await fetch('http://localhost:5000/admin/stats', {
@@ -75,14 +133,25 @@ const fetchStats = async () => {
 }
 
 const fetchCompanies = async () => {
-  const res = await fetch(`http://localhost:5000/admin/companies?search=${searchQuery.value}`, {
+  const query = companySearchQuery.value ? `?search=${companySearchQuery.value}` : ''
+  const res = await fetch(`http://localhost:5000/admin/companies${query}`, {
+    // ?search=${searchQuery.value}
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   })
   companies.value = await res.json()
 }
 
-const approve = async (id) => {
-  await fetch(`http://localhost:5000/admin/approve-company/${id}`, {
+const fetchStudents = async () => {
+  const query = studentSearchQuery.value ? `?search=${studentSearchQuery.value}` : ''
+  console.log(query)
+  const res = await fetch(`http://localhost:5000/admin/students${query}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  students.value = await res.json()
+}
+
+const toggle_approve = async (id) => {
+  await fetch(`http://localhost:5000/admin/companies/approve?id=${id}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   })
@@ -90,8 +159,18 @@ const approve = async (id) => {
   fetchStats()
 }
 
+const toggle_blacklist = async (id) => {
+  await fetch(`http://localhost:5000/admin/user/blacklist?id=${id}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  fetchCompanies()
+  fetchStudents()
+}
+
 onMounted(() => {
   fetchStats()
-  // fetchCompanies()
+  fetchCompanies()
+  fetchStudents()
 })
 </script>

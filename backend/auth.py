@@ -54,7 +54,6 @@ def register_company():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
-    print(request.json)
     user = User.query.filter_by(email=data["email"]).first()
 
     if user and check_password_hash(user.password, data["password"]):
@@ -64,9 +63,7 @@ def login():
             if not company.is_approved:
                 return jsonify({"msg": "Company account pending admin approval"}), 403
 
-        access_token = create_access_token(
-            identity={"email": user.email, "role": user.role}
-        )
+        access_token = create_access_token(identity=str(user.id))
         return jsonify(access_token=access_token, role=user.role), 200
 
     return jsonify({"msg": "Bad Email or password"}), 401
