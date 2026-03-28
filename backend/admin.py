@@ -84,6 +84,7 @@ def get_students():
 
 
 # --------------------------------------------------------------------------------------------
+# Blacklist and Approve Companies
 
 
 @admin_bp.route("/admin/companies/approve", methods=["POST", "OPTIONS"])
@@ -109,6 +110,9 @@ def toggle_active():
     user.is_active = not user.is_active
     db.session.commit()
     return jsonify({"msg": "Status updated", "is_active": user.is_active})
+
+
+# ----------------------------------------------------------------------------------
 
 
 @admin_bp.route("/admin/jobs/pending", methods=["GET"])

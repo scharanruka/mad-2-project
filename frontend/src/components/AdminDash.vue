@@ -98,14 +98,10 @@
               </td>
               <td>
                 <button
-                  v-if="!student.is_active"
-                  @click="blacklist(student.id)"
-                  class="btn btn-sm btn-outline-success me-2"
+                  @click="toggle_blacklist(student.id)"
+                  :class="`btn btn-sm me-2  ${student.is_active ? 'btn-outline-secondary' : 'btn-outline-primary'}`"
                 >
-                  Approve
-                </button>
-                <button @click="removeCompany(company.id)" class="btn btn-sm btn-outline-danger">
-                  Remove
+                  Blacklist
                 </button>
               </td>
             </tr>
