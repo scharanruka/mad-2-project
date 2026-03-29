@@ -4,6 +4,8 @@ from zoneinfo import ZoneInfo
 
 db = SQLAlchemy()
 
+# TODO: Add enum types to roles
+
 
 class User(db.Model):
     __tablename__ = "user"
