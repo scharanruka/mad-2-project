@@ -1,5 +1,5 @@
 from flask import jsonify, request, Blueprint
-from models import db, User, Student, Company, PlacementDrive, Application
+from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
@@ -35,7 +35,7 @@ def get_stats():
         {
             "total_students": Student.query.count(),
             "total_companies": Company.query.count(),
-            "total_jobs": PlacementDrive.query.count(),
+            "total_jobs": JobPosition.query.count(),
             "total_applications": Application.query.count(),
         }
     )
@@ -93,9 +93,9 @@ def approve_company():
     company_id = request.args.get("id", type=int)
 
     company = Company.query.get_or_404(company_id)
-    company.is_approved = not company.is_approved
+    company.is_approved = True
     db.session.commit()
-    return jsonify({"msg": f"Company {company.name} approved toggled"})
+    return jsonify({"msg": f"Company {company.name} approved"})
 
 
 # Blacklist any user
@@ -118,7 +118,7 @@ def toggle_active():
 @admin_bp.route("/admin/jobs/pending", methods=["GET"])
 @admin_required
 def get_pending_jobs():
-    jobs = PlacementDrive.query.filter_by(status="Pending").all()
+    jobs = JobPosition.query.filter_by(status="Pending").all()
     return jsonify(
         [
             {
@@ -135,7 +135,7 @@ def get_pending_jobs():
 @admin_bp.route("/admin/job/<int:job_id>/approve", methods=["POST"])
 @admin_required
 def approve_job(job_id):
-    job = PlacementDrive.query.get_or_404(job_id)
+    job = JobPosition.query.get_or_404(job_id)
     job.status = "Approved"
     db.session.commit()
     return jsonify({"msg": "Job posting approved"})

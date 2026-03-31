@@ -36,7 +36,9 @@
               <td>{{ company.name }}</td>
               <td>{{ company.industry }}</td>
               <td class="">
-                <span :class="company.is_approved ? 'badge bg-success px-3' : 'badge bg-info px-3'">
+                <span
+                  :class="company.is_approved ? 'badge bg-success px-3' : 'badge bg-danger px-3'"
+                >
                   {{ company.is_approved ? 'Approved' : 'Pending' }}
                 </span>
                 <span :class="company.is_active ? 'badge bg-success' : 'badge bg-secondary'">
@@ -46,18 +48,19 @@
               <td>
                 <span>
                   <button
+                    v-if="!company.is_approved"
                     @click="toggle_approve(company.id)"
                     :class="`btn btn-sm me-2  ${company.is_approved ? 'btn-outline-danger' : 'btn-outline-success'}`"
                   >
-                    Approve
+                    {{ company.is_approved ? 'Reject' : 'Approve' }}
                   </button>
                 </span>
                 <span>
                   <button
                     @click="toggle_blacklist(company.id)"
-                    :class="`btn btn-sm me-2  ${company.is_active ? 'btn-outline-secondary' : 'btn-outline-primary'}`"
+                    :class="`btn btn-sm me-2  ${company.is_active ? 'btn-outline-secondary' : 'btn-outline-success'}`"
                   >
-                    Blacklist
+                    {{ company.is_active ? 'Blacklist' : 'Enable' }}
                   </button>
                 </span>
               </td>
@@ -113,7 +116,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { ref, onMounted, reactive } from 'vue'
+
+const authStore = useAuthStore()
 
 const stats = ref({})
 const companies = ref([])
@@ -123,7 +129,7 @@ const studentSearchQuery = ref('')
 
 const fetchStats = async () => {
   const res = await fetch('http://localhost:5000/admin/stats', {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    headers: { Authorization: `Bearer ${authStore.token}` },
   })
   stats.value = await res.json()
 }
@@ -132,16 +138,15 @@ const fetchCompanies = async () => {
   const query = companySearchQuery.value ? `?search=${companySearchQuery.value}` : ''
   const res = await fetch(`http://localhost:5000/admin/companies${query}`, {
     // ?search=${searchQuery.value}
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    headers: { Authorization: `Bearer ${authStore.token}` },
   })
   companies.value = await res.json()
 }
 
 const fetchStudents = async () => {
   const query = studentSearchQuery.value ? `?search=${studentSearchQuery.value}` : ''
-  console.log(query)
   const res = await fetch(`http://localhost:5000/admin/students${query}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    headers: { Authorization: `Bearer ${authStore.token}` },
   })
   students.value = await res.json()
 }
@@ -149,7 +154,7 @@ const fetchStudents = async () => {
 const toggle_approve = async (id) => {
   await fetch(`http://localhost:5000/admin/companies/approve?id=${id}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    headers: { Authorization: `Bearer ${authStore.token}` },
   })
   fetchCompanies()
   fetchStats()
@@ -158,7 +163,7 @@ const toggle_approve = async (id) => {
 const toggle_blacklist = async (id) => {
   await fetch(`http://localhost:5000/admin/user/blacklist?id=${id}`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    headers: { Authorization: `Bearer ${authStore.token}` },
   })
   fetchCompanies()
   fetchStudents()

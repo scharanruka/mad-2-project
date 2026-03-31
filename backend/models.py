@@ -2,9 +2,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-db = SQLAlchemy()
-
-# TODO: Add enum types to roles
+db: SQLAlchemy = SQLAlchemy()
 
 
 class User(db.Model):
@@ -40,31 +38,29 @@ class Company(db.Model):
     industry = db.Column(db.String(100))
     website = db.Column(db.String(150))
     description = db.Column(db.Text)
-    drives = db.relationship("PlacementDrive", backref="company", lazy=True)
     is_approved = db.Column(db.Boolean, default=False)  # for Admin approval
 
+    jobs = db.relationship("JobPosition", backref="company", lazy=True)
 
-class PlacementDrive(db.Model):
-    __tablename__ = "placement_drive"
+
+class JobPosition(db.Model):
+    __tablename__ = "job_position"
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
-    job_title = db.Column(db.String(100), nullable=False)
-    job_description = db.Column(db.Text)
+    title = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
     salary = db.Column(db.String(50))
     deadline = db.Column(db.DateTime, nullable=False)
     min_cgpa = db.Column(db.Float, default=0.0)  # Eligibility validation
-    status = db.Column(db.String(20), default="Pending")  # Pending/Approved/Closed
-    # TODO: no of open positions
-    applications = db.relationship("Application", backref="drive", lazy=True)
+    status = db.Column(db.String(20), default="Approved")  # Pending/Approved/Closed
+    open_positions = db.Column(db.Integer, default=1)
 
 
 class Application(db.Model):
     __tablename__ = "application"
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)
-    drive_id = db.Column(
-        db.Integer, db.ForeignKey("placement_drive.id"), nullable=False
-    )
+    job_id = db.Column(db.Integer, db.ForeignKey("job_position.id"), nullable=False)
     date_applied = db.Column(db.DateTime, default=datetime.now(ZoneInfo("localtime")))
     status = db.Column(db.String(50), default="Applied")  # Applied/Shortlisted/Rejected
     feedback = db.Column(db.Text)

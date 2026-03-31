@@ -1,5 +1,6 @@
 <script setup>
 import { useAuthStore } from './stores/auth'
+import router from '@/router'
 
 const store = useAuthStore()
 </script>
@@ -14,7 +15,7 @@ const store = useAuthStore()
       <button
         v-if="!store.token"
         class="btn btn-outline-light btn-sm"
-        @click="store.router.push('/login')"
+        @click="router.push('/login')"
       >
         Login
       </button>
