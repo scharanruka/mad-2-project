@@ -169,21 +169,18 @@ def approve_job(job_id):
     return jsonify({"msg": "Job posting approved"})
 
 
-# View all Job Postings and Applications
-# @admin_bp.route("/admin/all-applications", methods=["GET"])
-# @admin_required
-# def get_all_applications():
-#     apps = Application.query.all()
-#     return jsonify(
-#         [
-#             {
-#                 "id": a.id,
-#                 "student": a.student.full_name,
-#                 "job_title": a.job.title,
-#                 "company": a.job.company.name,
-#                 "status": a.status,
-#                 "date": a.date_applied.strftime("%Y-%m-%d"),
-#             }
-#             for a in apps
-#         ]
-#     )
+@admin_bp.route("/admin/postings/<int:posting_id>/details", methods=["GET"])
+@admin_required
+def get_posting_details(posting_id):
+    posting = JobPosition.query.get_or_404(posting_id)
+    return_dict = posting.to_dict()
+    return jsonify(return_dict)
+
+
+@admin_bp.route("/admin/postings/<int:posting_id>/complete", methods=["POST"])
+@admin_required
+def mark_posting_complete(posting_id):
+    posting = JobPosition.query.get_or_404(posting_id)
+    posting.status = "closed"
+    db.session.commit()
+    return jsonify({"msg": "Job posting marked complete"})

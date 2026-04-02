@@ -49,7 +49,7 @@
                 <span>
                   <button
                     v-if="!company.is_approved"
-                    @click="toggle_approve(company.id)"
+                    @click="approve_company(company.id)"
                     :class="`btn btn-sm me-2  ${company.is_approved ? 'btn-outline-danger' : 'btn-outline-success'}`"
                   >
                     {{ company.is_approved ? 'Reject' : 'Approve' }}
@@ -113,7 +113,7 @@
       </div>
     </div>
 
-    <div class="card shadow-sm mb-4">
+    <!-- <div class="card shadow-sm mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Ongoing Drives</h5>
       </div>
@@ -138,7 +138,8 @@
           </tbody>
         </table>
       </div>
-    </div>
+    </div> -->
+    <OngoingDrives />
 
     <div class="card shadow-sm mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
@@ -177,13 +178,14 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted, reactive } from 'vue'
+import OngoingDrives from '@/components/admin/OngoingDrives.vue'
 
 const authStore = useAuthStore()
 
 const stats = ref({})
 const companies = ref([])
 const students = ref([])
-const postings = ref([])
+
 const applications = ref([])
 
 const companySearchQuery = ref('')
@@ -213,13 +215,6 @@ const fetchStudents = async () => {
   students.value = await res.json()
 }
 
-const fetchPostings = async () => {
-  const res = await fetch('http://localhost:5000/admin/postings', {
-    headers: { Authorization: `Bearer ${authStore.token}` },
-  })
-  postings.value = await res.json()
-}
-
 const fetchApplications = async () => {
   const res = await fetch('http://localhost:5000/admin/applications', {
     headers: { Authorization: `Bearer ${authStore.token}` },
@@ -227,7 +222,7 @@ const fetchApplications = async () => {
   applications.value = await res.json()
 }
 
-const toggle_approve = async (id) => {
+const approve_company = async (id) => {
   await fetch(`http://localhost:5000/admin/companies/approve?id=${id}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${authStore.token}` },
@@ -254,7 +249,6 @@ onMounted(() => {
   fetchStats()
   fetchCompanies()
   fetchStudents()
-  fetchPostings()
   fetchApplications()
 })
 </script>

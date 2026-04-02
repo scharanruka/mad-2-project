@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -43,7 +44,7 @@ class Company(db.Model):
     jobs = db.relationship("JobPosition", backref="company", lazy=True)
 
 
-class JobPosition(db.Model):
+class JobPosition(db.Model, SerializerMixin):
     __tablename__ = "job_position"
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
