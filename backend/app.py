@@ -7,6 +7,7 @@ from models import db
 from auth import auth_bp
 from admin import admin_bp
 from company import company_bp
+from student import student_bp
 
 
 app = Flask(__name__)
@@ -16,6 +17,7 @@ jwt = JWTManager(app)
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(company_bp)
+app.register_blueprint(student_bp)
 
 # enable CORS
 CORS(app, resources={r"/*": {"origins": "*"}})

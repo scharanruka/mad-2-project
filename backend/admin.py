@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
+from sqlalchemy.orm import joinedload
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -83,6 +83,34 @@ def get_students():
     )
 
 
+@admin_bp.route("/admin/postings", methods=["GET"])
+@admin_required
+def get_ongoing_postings():
+    query = JobPosition.query.filter(JobPosition.status != "closed")
+    return jsonify([{"id": d.id, "title": d.title} for d in query.all()])
+
+
+@admin_bp.route("/admin/applications", methods=["GET"])
+@admin_required
+def get_all_applications():
+    query = Application.query.options(
+        joinedload(Application.job_position).joinedload(JobPosition.company),
+        joinedload(Application.student),
+    )
+    return jsonify(
+        [
+            {
+                "id": a.id,
+                "sname": a.student.full_name,
+                "date_applied": a.date_applied,
+                "posting": a.job_position.title,
+                "company": a.job_position.company.name,
+            }
+            for a in query.all()
+        ]
+    )
+
+
 # --------------------------------------------------------------------------------------------
 # Blacklist and Approve Companies
 
@@ -142,20 +170,20 @@ def approve_job(job_id):
 
 
 # View all Job Postings and Applications
-@admin_bp.route("/admin/all-applications", methods=["GET"])
-@admin_required
-def get_all_applications():
-    apps = Application.query.all()
-    return jsonify(
-        [
-            {
-                "id": a.id,
-                "student": a.student.full_name,
-                "job_title": a.job.title,
-                "company": a.job.company.name,
-                "status": a.status,
-                "date": a.date_applied.strftime("%Y-%m-%d"),
-            }
-            for a in apps
-        ]
-    )
+# @admin_bp.route("/admin/all-applications", methods=["GET"])
+# @admin_required
+# def get_all_applications():
+#     apps = Application.query.all()
+#     return jsonify(
+#         [
+#             {
+#                 "id": a.id,
+#                 "student": a.student.full_name,
+#                 "job_title": a.job.title,
+#                 "company": a.job.company.name,
+#                 "status": a.status,
+#                 "date": a.date_applied.strftime("%Y-%m-%d"),
+#             }
+#             for a in apps
+#         ]
+#     )

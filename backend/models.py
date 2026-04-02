@@ -64,3 +64,6 @@ class Application(db.Model):
     date_applied = db.Column(db.DateTime, default=datetime.now(ZoneInfo("localtime")))
     status = db.Column(db.String(50), default="Applied")  # Applied/Shortlisted/Rejected
     feedback = db.Column(db.Text)
+
+    job_position = db.relationship("JobPosition", backref="applications")
+    # student = db.relationship("Student", backref="applications")

@@ -70,7 +70,7 @@
       </div>
     </div>
 
-    <div class="card shadow-sm">
+    <div class="card shadow-sm mb-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Registered Students</h5>
         <input
@@ -112,6 +112,65 @@
         </table>
       </div>
     </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Ongoing Drives</h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Sr No.</th>
+              <th>Drive Name</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="posting in postings" :key="posting.id">
+              <td>{{ posting.id }}</td>
+              <td>{{ posting.title }}</td>
+              <td>
+                <button class="btn btn-outline-primary btn-sm me-2">View Details</button>
+                <button class="btn btn-outline-success btn-sm me-2">Mark as complete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Student Applications</h5>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Sr No.</th>
+              <th>Name</th>
+              <th>Drive</th>
+              <th>Company</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="appl in applications" :key="appl.id">
+              <td>{{ appl.id }}</td>
+              <td>{{ appl.sname }}</td>
+              <td>{{ appl.posting }}</td>
+              <td>{{ appl.company }}</td>
+              <td>{{ formatDate(appl.date_applied) }}</td>
+              <td>
+                <button class="btn btn-outline-primary btn-sm me-2">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -124,6 +183,9 @@ const authStore = useAuthStore()
 const stats = ref({})
 const companies = ref([])
 const students = ref([])
+const postings = ref([])
+const applications = ref([])
+
 const companySearchQuery = ref('')
 const studentSearchQuery = ref('')
 
@@ -151,6 +213,20 @@ const fetchStudents = async () => {
   students.value = await res.json()
 }
 
+const fetchPostings = async () => {
+  const res = await fetch('http://localhost:5000/admin/postings', {
+    headers: { Authorization: `Bearer ${authStore.token}` },
+  })
+  postings.value = await res.json()
+}
+
+const fetchApplications = async () => {
+  const res = await fetch('http://localhost:5000/admin/applications', {
+    headers: { Authorization: `Bearer ${authStore.token}` },
+  })
+  applications.value = await res.json()
+}
+
 const toggle_approve = async (id) => {
   await fetch(`http://localhost:5000/admin/companies/approve?id=${id}`, {
     method: 'POST',
@@ -169,9 +245,16 @@ const toggle_blacklist = async (id) => {
   fetchStudents()
 }
 
+const formatDate = (dateString) => {
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('default', { dateStyle: 'long' }).format(date)
+}
+
 onMounted(() => {
   fetchStats()
   fetchCompanies()
   fetchStudents()
+  fetchPostings()
+  fetchApplications()
 })
 </script>
