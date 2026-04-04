@@ -23,7 +23,7 @@ const apply = async (jobId) => {
 onMounted(fetchJobs)
 </script>
 
-<template>
+<!-- <template>
   <div class="container mt-4">
     <div class="row">
       <div class="col-md-3">
@@ -61,6 +61,48 @@ onMounted(fetchJobs)
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</template> -->
+
+<template>
+  <div class="container mt-4">
+    <ul class="nav nav-pills mb-4">
+      <li class="nav-item">
+        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#jobs">
+          Job Board
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#history">
+          My Applications
+        </button>
+      </li>
+      <li class="nav-item">
+        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#profile">Profile</button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <div class="tab-pane fade" id="history">
+        <div v-for="app in myApplications" :key="app.id" class="card mb-2">
+          <div class="card-body">
+            <h6>{{ app.job_title }} at {{ app.company }}</h6>
+            <span :class="getStatusClass(app.status)">{{ app.status }}</span>
+            <p class="small mt-2">Feedback: {{ app.feedback }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="profile">
+        <form @submit.prevent="updateProfile" enctype="multipart/form-data">
+          <div class="mb-3">
+            <label>Resume (PDF)</label>
+            <input type="file" @change="onFileChange" class="form-control" accept=".pdf" />
+          </div>
+          <button type="submit" class="btn btn-primary">Update Profile</button>
+        </form>
       </div>
     </div>
   </div>

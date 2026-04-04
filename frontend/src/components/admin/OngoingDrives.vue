@@ -87,42 +87,6 @@ onMounted(() => {
           </div>
 
           <h4>Salary : {{ postingDetails.salary }}</h4>
-
-          <!-- <table class="table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>CGPA</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="app in applicants" :key="app.application_id">
-                <td>{{ app.student_name }}</td>
-                <td>{{ app.cgpa }}</td>
-                <td>
-                  <span class="badge bg-secondary">{{ app.status }}</span>
-                </td>
-                <td>
-                  <div class="btn-group">
-                    <button
-                      @click="updateStatus(app.application_id, 'Shortlisted')"
-                      class="btn btn-sm btn-success"
-                    >
-                      Shortlist
-                    </button>
-                    <button
-                      @click="updateStatus(app.application_id, 'Rejected')"
-                      class="btn btn-sm btn-danger"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table> -->
         </div>
       </div>
     </div>

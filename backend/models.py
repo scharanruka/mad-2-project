@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 db: SQLAlchemy = SQLAlchemy()
 
 
-class User(db.Model):
+class User(db.Model, SerializerMixin):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
@@ -19,7 +19,7 @@ class User(db.Model):
     company_profile = db.relationship("Company", backref="user", uselist=False)
 
 
-class Student(db.Model):
+class Student(db.Model, SerializerMixin):
     __tablename__ = "student"
     id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
@@ -57,7 +57,7 @@ class JobPosition(db.Model, SerializerMixin):
     open_positions = db.Column(db.Integer, default=1)
 
 
-class Application(db.Model):
+class Application(db.Model, SerializerMixin):
     __tablename__ = "application"
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)

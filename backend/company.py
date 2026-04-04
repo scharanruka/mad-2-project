@@ -4,6 +4,7 @@ from flask import jsonify, request, Blueprint
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
+from helpers import save_file
 
 company_bp = Blueprint("company", __name__)
 
@@ -68,13 +69,14 @@ def get_company_jobs():
     user_id = get_jwt_identity()
     company = Company.query.filter_by(id=user_id).first()
     jobs = JobPosition.query.filter_by(company_id=company.id).all()
+    applicant_count = Application.query.filter_by(job_id=JobPosition.id).count() | 0
     return jsonify(
         [
             {
                 "id": j.id,
                 "title": j.title,
                 "status": j.status,
-                "applicant_count": 0,
+                "applicant_count": applicant_count,
             }
             for j in jobs
         ]
@@ -128,3 +130,22 @@ def toggle_job_status(job_id):
     return jsonify(
         {"msg": f"Job status updated to {job.status}", "new_status": job.status}
     )
+
+
+# Profile Editing ---------------------------------------------
+@company_bp.route("/company/profile", methods=["PUT"])
+@company_required
+def update_company_profile():
+    user_id = get_jwt_identity()
+    company = Company.query.get(int(user_id))
+
+    company.name = request.form.get("name", company.name)
+    company.description = request.form.get("description", company.description)
+
+    if "logo" in request.files:
+        # Assuming you add a 'logo_path' column to Company model
+        path = save_file(request.files["logo"], "logos")
+        company.logo_path = path
+
+    db.session.commit()
+    return jsonify({"msg": "Company profile updated"})

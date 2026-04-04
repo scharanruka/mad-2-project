@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import jsonify, request, Blueprint
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
-
+from helpers import save_file
 
 student_bp = Blueprint("student", __name__)
 
@@ -89,3 +89,23 @@ def apply_to_job(job_id):
     db.session.add(new_app)
     db.session.commit()
     return jsonify({"msg": "Application submitted successfully!"}), 201
+
+
+# Profile Editing ----------------------------------------------------------------------------------
+@student_bp.route("/student/profile", methods=["PUT"])
+@student_required
+def update_student_profile():
+    user_id = get_jwt_identity()
+    student = Student.query.get(int(user_id))
+
+    # Handle text data
+    student.full_name = request.form.get("full_name", student.full_name)
+    student.skills = request.form.get("skills", student.skills)
+    student.branch = request.form.get("branch", student.branch)
+
+    # Handle Resume Upload
+    if "resume" in request.files:
+        student.resume_path = save_file(request.files["resume"], "resumes")
+
+    db.session.commit()
+    return jsonify({"msg": "Profile updated successfully"})

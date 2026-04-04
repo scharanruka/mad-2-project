@@ -173,8 +173,7 @@ def approve_job(job_id):
 @admin_required
 def get_posting_details(posting_id):
     posting = JobPosition.query.get_or_404(posting_id)
-    return_dict = posting.to_dict()
-    return jsonify(return_dict)
+    return jsonify(posting.to_dict())
 
 
 @admin_bp.route("/admin/postings/<int:posting_id>/complete", methods=["POST"])
@@ -184,3 +183,18 @@ def mark_posting_complete(posting_id):
     posting.status = "closed"
     db.session.commit()
     return jsonify({"msg": "Job posting marked complete"})
+
+
+@admin_bp.route("/admin/applications/<int:appl_id>/details", methods=["GET"])
+@admin_required
+def get_application_details(appl_id):
+    appl = Application.query.get_or_404(appl_id)
+    job_position = JobPosition.query.get_or_404(appl.job_id)
+    return jsonify(
+        {
+            "id": appl.id,
+            "date_applied": appl.date_applied,
+            "posting_id": job_position.id,
+            "posting_title": job_position.title,
+        }
+    )

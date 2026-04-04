@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 
@@ -31,10 +31,9 @@ app.config["SECRET_KEY"] = "mysecretkey"
 
 db.init_app(app)
 
-
-@app.route("/", methods=["GET"])
-def hello():
-    return jsonify("Hello!")
+# File uploads
+UPLOAD_FOLDER = "uploads"
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 
 if __name__ == "__main__":
