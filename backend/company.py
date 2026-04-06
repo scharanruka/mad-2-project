@@ -56,7 +56,7 @@ def create_job():
         salary=data["salary"],
         min_cgpa=data.get("min_cgpa", 0.0),
         deadline=datetime.strptime(data["deadline"], "%Y-%m-%d"),
-        status="Approved",
+        status="ongoing",
     )
     db.session.add(new_job)
     db.session.commit()
@@ -69,14 +69,13 @@ def get_company_jobs():
     user_id = get_jwt_identity()
     company = Company.query.filter_by(id=user_id).first()
     jobs = JobPosition.query.filter_by(company_id=company.id).all()
-    applicant_count = Application.query.filter_by(job_id=JobPosition.id).count() | 0
     return jsonify(
         [
             {
                 "id": j.id,
                 "title": j.title,
                 "status": j.status,
-                "applicant_count": applicant_count,
+                "applicant_count": Application.query.filter_by(job_id=j.id).count(),
             }
             for j in jobs
         ]
@@ -125,7 +124,7 @@ def get_job_applicants(job_id):
 def toggle_job_status(job_id):
     job = JobPosition.query.get_or_404(job_id)
 
-    job.status = "Closed" if job.status == "Approved" else "Approved"
+    job.status = "closed" if job.status == "ongoing" else "ongoing"
     db.session.commit()
     return jsonify(
         {"msg": f"Job status updated to {job.status}", "new_status": job.status}

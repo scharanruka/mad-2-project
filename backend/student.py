@@ -5,6 +5,8 @@ from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from helpers import save_file
 
+# from tasks import export_applications_csv
+
 student_bp = Blueprint("student", __name__)
 
 
@@ -109,3 +111,15 @@ def update_student_profile():
 
     db.session.commit()
     return jsonify({"msg": "Profile updated successfully"})
+
+
+# Async Tasks ------------------------
+@student_bp.route("/student/export-applications", methods=["POST"])
+@student_required
+def trigger_export():
+    user_id = get_jwt_identity()
+    # Trigger Celery task asynchronously
+    task = ""  # export_applications_csv.delay(int(user_id))
+    return jsonify(
+        {"msg": "Export started. You will be notified when ready.", "task_id": task.id}
+    ), 202

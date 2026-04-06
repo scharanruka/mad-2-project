@@ -1,12 +1,23 @@
 <script setup>
 import { Modal } from 'bootstrap'
 import { ref, onMounted } from 'vue'
+import CompanyCreateDrive from './CompanyCreateDrive.vue'
+import BaseDropdown from '../base/BaseDropdown.vue'
 
 const details = ref({})
 const myJobs = ref([])
-const newJob = ref({ title: '', salary: '', min_cgpa: '', description: '' })
+// const newJob = ref({ title: '', salary: '', min_cgpa: '', description: '' })
 const applicants = ref([])
 const selectedJobTitle = ref('')
+const actionItems = [
+  {
+    label: 'Edit Profile',
+    action: () => {
+      console.log('Test')
+    },
+  },
+  { label: 'Delete', action: () => {}, class: 'text-danger', icon: 'bi-trash' },
+]
 
 const fetchDetails = async () => {
   const res = await fetch('http://localhost:5000/company/details', {
@@ -16,25 +27,11 @@ const fetchDetails = async () => {
 }
 
 const fetchJobs = async () => {
+  console.log('Jobs fetched!')
   const res = await fetch('http://localhost:5000/company/jobs', {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   })
   myJobs.value = await res.json()
-}
-
-const postJob = async () => {
-  const res = await fetch('http://localhost:5000/company/jobs', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('token')}`,
-    },
-    body: JSON.stringify(newJob.value),
-  })
-  if (res.ok) {
-    alert('Job posted!')
-    fetchJobs()
-  }
 }
 
 const viewApplicants = async (jobId, title) => {
@@ -84,52 +81,9 @@ onMounted(() => {
 
 <template>
   <div class="container mt-4">
-    <h2>Welcome {{ details.name }}</h2>
-
-    <div class="card mb-4 shadow-sm">
-      <div class="card-body">
-        <h5>Post New Placement Drive</h5>
-        <form @submit.prevent="postJob" class="row g-3">
-          <div class="col-md-6">
-            <input v-model="newJob.title" placeholder="Job Title" class="form-control" required />
-          </div>
-          <div class="col-md-3">
-            <input
-              v-model="newJob.salary"
-              placeholder="Salary (e.g. 12 LPA)"
-              class="form-control"
-            />
-          </div>
-          <div class="col-md-3">
-            <input
-              v-model="newJob.min_cgpa"
-              type="number"
-              step="0.1"
-              placeholder="Min CGPA"
-              class="form-control"
-            />
-          </div>
-          <div class="col-md-3">
-            <input
-              v-model="newJob.deadline"
-              type="date"
-              :min="new Date().toISOString().split('T')[0]"
-              placeholder="Deadline"
-              class="form-control"
-            />
-          </div>
-          <div class="col-12">
-            <textarea
-              v-model="newJob.description"
-              placeholder="Job Description"
-              class="form-control"
-            ></textarea>
-          </div>
-          <div class="col-12">
-            <button type="submit" class="btn btn-primary">Create Drive</button>
-          </div>
-        </form>
-      </div>
+    <div>
+      <h2>Welcome {{ details.name }}</h2>
+      <CompanyCreateDrive @fetch-jobs="fetchJobs" />
     </div>
 
     <div class="row">
@@ -151,14 +105,24 @@ onMounted(() => {
                   <td>{{ job.title }}</td>
                   <td>
                     <span
-                      :class="job.status === 'Approved' ? 'badge bg-success' : 'badge bg-warning'"
+                      :class="job.status === 'ongoing' ? 'badge bg-success' : 'badge bg-warning'"
                       >{{ job.status }}</span
                     >
                   </td>
                   <td>{{ job.applicant_count }}</td>
                   <td>
-                    <button @click="viewApplicants(job.id)" class="btn btn-sm btn-outline-info">
+                    <button
+                      @click="viewApplicants(job.id)"
+                      class="btn btn-sm btn-outline-info me-2"
+                    >
                       View Applicants
+                    </button>
+                    <button
+                      v-if="job.status != 'closed'"
+                      @click="toggleJob(job.id)"
+                      class="btn btn-sm btn-outline-success"
+                    >
+                      Mark as Complete
                     </button>
                   </td>
                 </tr>
@@ -183,6 +147,7 @@ onMounted(() => {
                   <th>Name</th>
                   <th>CGPA</th>
                   <th>Status</th>
+                  <th>Resume</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -193,8 +158,9 @@ onMounted(() => {
                   <td>
                     <span class="badge bg-secondary">{{ app.status }}</span>
                   </td>
+                  <td><button class="btn btn-sm btn-outline-info">view resume</button></td>
                   <td>
-                    <div class="btn-group">
+                    <!-- <div class="btn-group">
                       <button
                         @click="updateStatus(app.application_id, 'Shortlisted')"
                         class="btn btn-sm btn-success"
@@ -207,7 +173,10 @@ onMounted(() => {
                       >
                         Reject
                       </button>
-                    </div>
+                    </div> -->
+                    <BaseDropdown label="Actions" :items="actionItems">
+                      <template #label> Actions Test </template>
+                    </BaseDropdown>
                   </td>
                 </tr>
               </tbody>

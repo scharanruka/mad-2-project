@@ -1,12 +1,13 @@
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy_serializer import SerializerMixin
+
+# from sqlalchemy_serializer import SerializerMixin
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 db: SQLAlchemy = SQLAlchemy()
 
 
-class User(db.Model, SerializerMixin):
+class User(db.Model):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
@@ -19,7 +20,7 @@ class User(db.Model, SerializerMixin):
     company_profile = db.relationship("Company", backref="user", uselist=False)
 
 
-class Student(db.Model, SerializerMixin):
+class Student(db.Model):
     __tablename__ = "student"
     id = db.Column(db.Integer, db.ForeignKey("user.id"), primary_key=True)
     full_name = db.Column(db.String(100), nullable=False)
@@ -44,7 +45,7 @@ class Company(db.Model):
     jobs = db.relationship("JobPosition", backref="company", lazy=True)
 
 
-class JobPosition(db.Model, SerializerMixin):
+class JobPosition(db.Model):
     __tablename__ = "job_position"
     id = db.Column(db.Integer, primary_key=True)
     company_id = db.Column(db.Integer, db.ForeignKey("company.id"), nullable=False)
@@ -53,11 +54,11 @@ class JobPosition(db.Model, SerializerMixin):
     salary = db.Column(db.String(50))
     deadline = db.Column(db.DateTime, nullable=False)
     min_cgpa = db.Column(db.Float, default=0.0)  # Eligibility validation
-    status = db.Column(db.String(20), default="Approved")  # Pending/Approved/Closed
+    status = db.Column(db.String(20), default="Approved")  # ongoing/closed/rejected
     open_positions = db.Column(db.Integer, default=1)
 
 
-class Application(db.Model, SerializerMixin):
+class Application(db.Model):
     __tablename__ = "application"
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey("student.id"), nullable=False)

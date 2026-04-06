@@ -121,8 +121,8 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted, reactive } from 'vue'
-import OngoingDrives from '@/components/admin/OngoingDrives.vue'
-import StudentApplications from '@/components/admin/StudentApplications.vue'
+import OngoingDrives from '@/components/admin/AdminOngoingDrives.vue'
+import StudentApplications from '@/components/admin/AdminStudentApplications.vue'
 
 const authStore = useAuthStore()
 

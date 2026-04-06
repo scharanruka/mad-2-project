@@ -1,11 +1,12 @@
 <script setup>
-import { Modal } from 'bootstrap'
+import BaseModal from '@/components/base/BaseModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted } from 'vue'
 
 const authStore = useAuthStore()
 const applications = ref([])
 const applicationDetails = ref({})
+const isModalOpen = ref(false)
 
 const fetchApplications = async () => {
   const res = await fetch('http://localhost:5000/admin/applications', {
@@ -19,11 +20,6 @@ const viewApplication = async (appl_id) => {
     headers: { Authorization: `Bearer ${authStore.token}` },
   })
   applicationDetails.value = await res.json()
-  console.log(applicationDetails)
-
-  const modalElement = document.getElementById('detailsModal')
-  const modalInstance = new Modal(modalElement)
-  modalInstance.show()
 }
 
 const formatDate = (dateString) => {
@@ -61,7 +57,15 @@ onMounted(() => {
             <td>{{ appl.company }}</td>
             <td>{{ formatDate(appl.date_applied) }}</td>
             <td>
-              <button class="btn btn-outline-primary btn-sm me-2" @click="viewApplication(appl.id)">
+              <button
+                class="btn btn-outline-primary btn-sm me-2"
+                @click="
+                  () => {
+                    isModalOpen = true
+                    viewApplication(appl.id)
+                  }
+                "
+              >
                 View
               </button>
             </td>
@@ -70,7 +74,17 @@ onMounted(() => {
       </table>
     </div>
   </div>
-  <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+  <BaseModal v-model="isModalOpen" title="Student Application details">
+    <template #body>
+      <div>
+        <h5>Student Name: {{ applicationDetails.sname }}</h5>
+        <h5>Branch: {{ applicationDetails.branch }}</h5>
+        <h5>Drive: {{ applicationDetails.posting_id }}</h5>
+        <h5>Title: {{ applicationDetails.posting_title }}</h5>
+      </div>
+    </template>
+  </BaseModal>
+  <!-- <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
@@ -80,12 +94,12 @@ onMounted(() => {
         <div class="modal-body">
           <h3>Application Title: {{ applicationDetails.title }}</h3>
           <div>
-            <!-- <p>{{ applicationDetails.description }}</p> -->
+            <p>{{ applicationDetails.description }}</p>
           </div>
 
-          <!-- <h4>Salary : {{ applicationDetails.salary }}</h4> -->
+          <h4>Date Applied : {{ applicationDetails.date_applied }}</h4>
         </div>
       </div>
     </div>
-  </div>
+  </div> -->
 </template>

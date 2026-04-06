@@ -35,7 +35,9 @@ def get_stats():
         {
             "total_students": Student.query.count(),
             "total_companies": Company.query.count(),
-            "total_jobs": JobPosition.query.count(),
+            "total_jobs": JobPosition.query.filter(
+                JobPosition.status == "ongoing"
+            ).count(),
             "total_applications": Application.query.count(),
         }
     )
@@ -87,7 +89,9 @@ def get_students():
 @admin_required
 def get_ongoing_postings():
     query = JobPosition.query.filter(JobPosition.status != "closed")
-    return jsonify([{"id": d.id, "title": d.title} for d in query.all()])
+    return jsonify(
+        [{"id": d.id, "title": d.title, "status": d.status} for d in query.all()]
+    )
 
 
 @admin_bp.route("/admin/applications", methods=["GET"])
@@ -173,7 +177,14 @@ def approve_job(job_id):
 @admin_required
 def get_posting_details(posting_id):
     posting = JobPosition.query.get_or_404(posting_id)
-    return jsonify(posting.to_dict())
+    return jsonify(
+        {
+            "id": posting.id,
+            "title": posting.title,
+            "description": posting.description,
+            "salary": posting.salary,
+        }
+    )
 
 
 @admin_bp.route("/admin/postings/<int:posting_id>/complete", methods=["POST"])
@@ -185,15 +196,26 @@ def mark_posting_complete(posting_id):
     return jsonify({"msg": "Job posting marked complete"})
 
 
+@admin_bp.route("/admin/postings/<int:posting_id>/toggle_status", methods=["POST"])
+@admin_required
+def toggle_posting(posting_id):
+    posting = JobPosition.query.get_or_404(posting_id)
+    posting.status = "rejected" if posting.status != "rejected" else "ongoing"
+    db.session.commit()
+    return jsonify({"msg": "Job posting status toggled"})
+
+
 @admin_bp.route("/admin/applications/<int:appl_id>/details", methods=["GET"])
 @admin_required
 def get_application_details(appl_id):
     appl = Application.query.get_or_404(appl_id)
+    student = Student.query.get_or_404(appl.student_id)
     job_position = JobPosition.query.get_or_404(appl.job_id)
     return jsonify(
         {
             "id": appl.id,
-            "date_applied": appl.date_applied,
+            "sname": student.full_name,
+            "branch": student.branch,
             "posting_id": job_position.id,
             "posting_title": job_position.title,
         }

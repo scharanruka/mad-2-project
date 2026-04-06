@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from '../components/Login.vue'
+import Login from '@/components/Login.vue'
 import AdminDash from '@/components/admin/AdminDash.vue'
-import CompanyDash from '../components/CompanyDash.vue'
-import StudentDash from '../components/StudentDash.vue'
+import CompanyDash from '@/components/company/CompanyDash.vue'
+import StudentDash from '@/components/student/StudentDash.vue'
 
 import RegisterStudent from '@/components/RegisterStudent.vue'
 import RegisterCompany from '@/components/RegisterCompany.vue'
