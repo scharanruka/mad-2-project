@@ -66,7 +66,11 @@ onMounted(() => {
           <tr v-for="posting in postings" :key="posting.id">
             <td>{{ posting.id }}</td>
             <td>{{ posting.title }}</td>
-            <td>{{ posting.status }}</td>
+            <td>
+              <span :class="posting.status == 'ongoing' ? 'badge bg-success' : 'badge bg-warning'">
+                {{ posting.status[0].toUpperCase() + posting.status.slice(1) }}
+              </span>
+            </td>
             <td>
               <button
                 @click="

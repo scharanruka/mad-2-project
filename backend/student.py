@@ -4,8 +4,7 @@ from flask import jsonify, request, Blueprint
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from helpers import save_file
-
-# from tasks import export_applications_csv
+from extensions import cache
 
 student_bp = Blueprint("student", __name__)
 
@@ -32,6 +31,7 @@ def student_required(fn):
 
 
 @student_bp.route("/student/jobs", methods=["GET"])
+@cache.cached(timeout=3600)
 @student_required
 def get_available_jobs():
     search = request.args.get("search", "")
@@ -107,7 +107,13 @@ def update_student_profile():
 
     # Handle Resume Upload
     if "resume" in request.files:
-        student.resume_path = save_file(request.files["resume"], "resumes")
+        path = save_file(request.files["resume"], "resumes")
+        student.resume_path = path
+        db.session.commit()
+        # Trigger background OCR
+        from tasks import process_resume_ocr
+
+        process_resume_ocr.delay(student.id, path)
 
     db.session.commit()
     return jsonify({"msg": "Profile updated successfully"})

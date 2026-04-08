@@ -3,6 +3,8 @@ from flask_jwt_extended import create_access_token
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, User, Student, Company
 
+from extensions import cache
+
 auth_bp = Blueprint("auth", __name__)
 
 
@@ -48,6 +50,7 @@ def register_company():
     )
     db.session.add(new_company)
     db.session.commit()
+    cache.delete("view//admin/companies")  # Cache Invalidate
     return jsonify({"msg": "Registration successful. Awaiting Admin approval."}), 201
 
 

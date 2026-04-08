@@ -9,9 +9,13 @@ from admin import admin_bp
 from company import company_bp
 from student import student_bp
 
+from extensions import cache
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "secret-key"
+cache.init_app(app)
+
+
 jwt = JWTManager(app)
 
 app.register_blueprint(auth_bp)

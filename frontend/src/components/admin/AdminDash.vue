@@ -50,9 +50,9 @@
                   <button
                     v-if="!company.is_approved"
                     @click="approve_company(company.id)"
-                    :class="`btn btn-sm me-2  ${company.is_approved ? 'btn-outline-danger' : 'btn-outline-success'}`"
+                    :class="`btn btn-sm me-2  ${company.is_approved ? 'btn-outline-success' : 'btn-outline-danger'}`"
                   >
-                    {{ company.is_approved ? 'Reject' : 'Approve' }}
+                    {{ company.is_approved ? 'Approve' : 'Reject' }}
                   </button>
                 </span>
                 <span>
@@ -129,8 +129,6 @@ const authStore = useAuthStore()
 const stats = ref({})
 const companies = ref([])
 const students = ref([])
-
-const applications = ref([])
 
 const companySearchQuery = ref('')
 const studentSearchQuery = ref('')

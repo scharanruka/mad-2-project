@@ -9,15 +9,12 @@ const myJobs = ref([])
 // const newJob = ref({ title: '', salary: '', min_cgpa: '', description: '' })
 const applicants = ref([])
 const selectedJobTitle = ref('')
-const actionItems = [
-  {
-    label: 'Edit Profile',
-    action: () => {
-      console.log('Test')
-    },
-  },
-  { label: 'Delete', action: () => {}, class: 'text-danger', icon: 'bi-trash' },
-]
+const reviewForm = ref({
+  application_id: null,
+  feedback: '',
+  interview_date: '',
+  status: '',
+})
 
 const fetchDetails = async () => {
   const res = await fetch('http://localhost:5000/company/details', {
@@ -62,6 +59,51 @@ const updateStatus = async (appId, newStatus) => {
     applicants.value = applicants.value.map((a) =>
       a.application_id === appId ? { ...a, status: newStatus } : a,
     )
+  }
+}
+// Modals ---------------------------------
+const selectedApplicant = ref(null) // Tracks the student for the second modal
+const reviewModalInstance = ref(null)
+
+const openReview = (app) => {
+  selectedApplicant.value = app
+  // Pre-fill the form with existing data if any
+  reviewForm.value = {
+    application_id: app.application_id,
+    feedback: app.feedback || '',
+    interview_date: app.interview_date || '',
+    status: app.status,
+  }
+
+  const modalElement = document.getElementById('reviewModal')
+  reviewModalInstance.value = new Modal(modalElement)
+  reviewModalInstance.value.show()
+}
+
+const submitReview = async (appId, status) => {
+  const res = await fetch(`http://localhost:5000/company/application/${appId}/process`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: JSON.stringify({
+      status: status,
+      feedback: reviewForm.value.feedback,
+      interview_date: reviewForm.value.interview_date,
+    }),
+  })
+
+  if (res.ok) {
+    alert(`Application updated to ${status}`)
+    // Refresh only the specific applicant in the local list
+    // applicants.value = applicants.value.map((a) =>
+    //   a.application_id === appId ? { ...a, status: status } : a,
+    // )
+    // Reset form
+    // reviewForm.value = { application_id: null, feedback: '', interview_date: '', status: '' }
+    reviewModalInstance.value.hide()
+    // viewApplicants(selectedJobId)
   }
 }
 
@@ -153,30 +195,50 @@ onMounted(() => {
               </thead>
               <tbody>
                 <tr v-for="app in applicants" :key="app.application_id">
-                  <td>{{ app.student_name }}</td>
-                  <td>{{ app.cgpa }}</td>
-                  <td>
-                    <span class="badge bg-secondary">{{ app.status }}</span>
-                  </td>
-                  <td><button class="btn btn-sm btn-outline-info">view resume</button></td>
-                  <td>
-                    <!-- <div class="btn-group">
-                      <button
-                        @click="updateStatus(app.application_id, 'Shortlisted')"
-                        class="btn btn-sm btn-success"
-                      >
-                        Shortlist
-                      </button>
-                      <button
-                        @click="updateStatus(app.application_id, 'Rejected')"
-                        class="btn btn-sm btn-danger"
-                      >
-                        Reject
-                      </button>
-                    </div> -->
-                    <BaseDropdown label="Actions" :items="actionItems">
-                      <template #label> Actions Test </template>
-                    </BaseDropdown>
+                  <td colspan="5">
+                    <div class="border rounded p-3 mb-2 bg-light">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>{{ app.student_name }} (CGPA: {{ app.cgpa }})</strong>
+                        <span class="badge bg-secondary">{{ app.status }}</span>
+                      </div>
+
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <textarea
+                            v-model="reviewForm.feedback"
+                            class="form-control form-control-sm"
+                            placeholder="Enter feedback for student..."
+                          ></textarea>
+                        </div>
+                        <div class="col-md-4">
+                          <input
+                            type="datetime-local"
+                            v-model="reviewForm.interview_date"
+                            class="form-control form-control-sm"
+                          />
+                        </div>
+                        <div class="col-md-2 d-grid gap-1">
+                          <button
+                            @click="submitReview(app.application_id, 'Shortlisted')"
+                            class="btn btn-sm btn-warning"
+                          >
+                            Shortlist
+                          </button>
+                          <button
+                            @click="submitReview(app.application_id, 'Rejected')"
+                            class="btn btn-sm btn-danger"
+                          >
+                            Reject
+                          </button>
+                          <button
+                            @click="submitReview(app.application_id, 'Selected')"
+                            class="btn btn-sm btn-success"
+                          >
+                            Select/Offer
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               </tbody>

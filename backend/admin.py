@@ -3,6 +3,8 @@ from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 
+from extensions import cache
+
 admin_bp = Blueprint("admin", __name__)
 
 
@@ -44,6 +46,7 @@ def get_stats():
 
 
 @admin_bp.route("/admin/companies", methods=["GET"])
+@cache.cached(timeout=3600)
 @admin_required
 def get_companies():  # search
     search = request.args.get("search", "")
@@ -69,20 +72,27 @@ def get_companies():  # search
 @admin_required
 def get_students():
     search = request.args.get("search", "")
+    cache_key = f"search_student_{search}"
+
+    # Try to get from cache
+    result = cache.get(cache_key)
+    if result is not None:
+        return jsonify(result)
+
     query = Student.query.join(User).filter(
         (Student.full_name.contains(search)) | (User.id.contains(search))
     )
-    return jsonify(
-        [
-            {
-                "id": s.id,
-                "name": s.full_name,
-                "branch": s.branch,
-                "is_active": s.user.is_active,
-            }
-            for s in query.all()
-        ]
-    )
+    data = [
+        {
+            "id": s.id,
+            "name": s.full_name,
+            "branch": s.branch,
+            "is_active": s.user.is_active,
+        }
+        for s in query.all()
+    ]
+    cache.set(cache_key, data, timeout=3600)
+    return jsonify(data)
 
 
 @admin_bp.route("/admin/postings", methods=["GET"])

@@ -46,7 +46,7 @@ def seed_data():
 
         s1 = Student(
             id=student1_u.id,
-            full_name="Slayer 0x10",
+            full_name="Sai",
             cgpa=9.5,
             branch="Data Science",
             skills="Python, Flask, VueJS",
@@ -68,7 +68,7 @@ def seed_data():
             salary="24 LPA",
             deadline=datetime.now() + timedelta(days=10),
             min_cgpa=8.0,
-            status="Approved",
+            status="ongoing",
         )
         job2 = JobPosition(
             company_id=meta.id,
@@ -77,7 +77,7 @@ def seed_data():
             salary="18 LPA",
             deadline=datetime.now() + timedelta(days=5),
             min_cgpa=7.0,
-            status="Approved",
+            status="ongoing",
         )
 
         db.session.add_all([job1, job2])

@@ -5,6 +5,7 @@ from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from helpers import save_file
+from extensions import cache
 
 company_bp = Blueprint("company", __name__)
 
@@ -60,6 +61,7 @@ def create_job():
     )
     db.session.add(new_job)
     db.session.commit()
+
     return jsonify({"msg": "Job posting created"}), 201
 
 
@@ -82,15 +84,49 @@ def get_company_jobs():
     )
 
 
-@company_bp.route("/company/application/<int:app_id>/status", methods=["POST"])
+# APPLCIATIONS --------------------------------------------------------------------------
+
+
+@company_bp.route("/company/application/<int:appl_id>/status", methods=["POST"])
 @company_required
-def update_app_status(app_id):
+def update_app_status(appl_id):
     data = request.json  # Expecting {"status": "Shortlisted", "feedback": "..."}
-    application = Application.query.get_or_404(app_id)
+    application = Application.query.get_or_404(appl_id)
     application.status = data["status"]
     # TODO: Feedback here
     db.session.commit()
     return jsonify({"msg": f"Application marked as {application.status}"})
+
+
+@company_bp.route("/company/application/<int:appl_id>/process", methods=["POST"])
+@company_required
+def process_application(appl_id):
+    data = request.json
+    # { "status": "Shortlisted", "feedback": "Great resume", "interview_date": "2026-04-15T10:00" }
+    application = Application.query.get_or_404(appl_id)
+
+    application.status = data.get("status", application.status)
+    application.feedback = data.get("feedback", application.feedback)
+    if data.get("interview_date"):
+        application.interview_date = datetime.fromisoformat(data["interview_date"])
+
+    db.session.commit()
+
+    # TODO: Trigger an async notification task if you have it set up
+    return jsonify({"msg": f"Application updated to {application.status}"})
+
+
+@company_bp.route("/company/application/<int:appl_id>/offer", methods=["POST"])
+@company_required
+def generate_offer(appl_id):
+    application = Application.query.get_or_404(appl_id)
+    application.status = "selected"  # Final stage
+    db.session.commit()
+    # In a later milestone, you can hook this into a PDF generator
+    return jsonify({"msg": "Offer extended to student"})
+
+
+# -------------------------------------------------------------------------------------------
 
 
 # View all applicants for a specific job
@@ -104,6 +140,19 @@ def get_job_applicants(job_id):
         return jsonify({"msg": "Unauthorized"}), 403
 
     apps = Application.query.filter_by(job_id=job_id).all()
+    print(
+        [
+            {
+                "application_id": a.id,
+                "student_name": a.student.full_name,
+                "cgpa": a.student.cgpa,
+                "status": a.status,
+                "applied_on": a.date_applied.strftime("%Y-%m-%d"),
+                "feedback": a.feedback,
+            }
+            for a in apps
+        ]
+    )
     return jsonify(
         [
             {
