@@ -6,6 +6,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from helpers import save_file
 from extensions import cache
 
+from sqlalchemy.orm import joinedload
+
 student_bp = Blueprint("student", __name__)
 
 
@@ -31,9 +33,10 @@ def student_required(fn):
 
 
 @student_bp.route("/student/jobs", methods=["GET"])
-@cache.cached(timeout=3600)
+# @cache.cached(timeout=3600)
 @student_required
 def get_available_jobs():
+    user_id = get_jwt_identity()
     search = request.args.get("search", "")
     # Only show 'Approved' jobs that haven't passed the deadline and company approved
     query = JobPosition.query.join(Company, JobPosition.company_id == Company.id).join(
@@ -41,7 +44,7 @@ def get_available_jobs():
     )
 
     query = query.filter(
-        JobPosition.status == "Approved",
+        JobPosition.status == "ongoing",
         JobPosition.deadline > datetime.now(),
         User.is_active,
         Company.is_approved,
@@ -63,6 +66,11 @@ def get_available_jobs():
                 "min_cgpa": j.min_cgpa,
                 "deadline": j.deadline.strftime("%Y-%m-%d"),
                 "description": j.description,
+                "has_applied": True
+                if Application.query.filter(Application.student_id == user_id)
+                .filter(Application.job_id == j.id)
+                .all()
+                else False,
             }
             for j in jobs
         ]
@@ -93,6 +101,37 @@ def apply_to_job(job_id):
     return jsonify({"msg": "Application submitted successfully!"}), 201
 
 
+# Applications -----------------------------------------------------------------
+@student_bp.route("/student/applications", methods=["GET"])
+# @cache.cached(timeout=3600)
+@student_required
+def get_my_applications():
+    user_id = get_jwt_identity()
+
+    # query = Application.query.options(
+    #     joinedload(Application.job_position).joinedload(JobPosition.company),
+    #     joinedload(Application.student),
+    # )
+    appls = (
+        Application.query.join(JobPosition)  # Joins Application to JobPosition
+        .join(Company)  # Joins JobPosition to Company
+        .filter(Application.student_id == user_id)  # Filter after the joins
+    )
+    appls = appls.all()
+    data = [
+        {
+            "id": a.id,
+            "status": a.status,
+            "feedback": a.feedback,
+            "job_title": a.job_position.title,
+            "company": a.job_position.company.name,
+        }
+        for a in appls
+    ]
+    print(data)
+    return jsonify(data)
+
+
 # Profile Editing ----------------------------------------------------------------------------------
 @student_bp.route("/student/profile", methods=["PUT"])
 @student_required
@@ -117,6 +156,17 @@ def update_student_profile():
 
     db.session.commit()
     return jsonify({"msg": "Profile updated successfully"})
+
+
+@student_bp.route("/student/profile", methods=["GET"])
+@student_required
+def get_student_details():
+    user_id = get_jwt_identity()
+    student = Student.query.get(int(user_id))
+
+    return jsonify(
+        {"id": student.id, "full_name": student.full_name, "branch": student.branch}
+    )
 
 
 # Async Tasks ------------------------

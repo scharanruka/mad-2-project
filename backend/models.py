@@ -54,7 +54,9 @@ class JobPosition(db.Model):
     salary = db.Column(db.String(50))
     deadline = db.Column(db.DateTime, nullable=False)
     min_cgpa = db.Column(db.Float, default=0.0)  # Eligibility validation
-    status = db.Column(db.String(20), default="Approved")  # ongoing/closed/rejected
+    status = db.Column(
+        db.String(20), default="Approved"
+    )  # ongoing/closed/rejected/selected/shortlisted
     open_positions = db.Column(db.Integer, default=1)
 
 

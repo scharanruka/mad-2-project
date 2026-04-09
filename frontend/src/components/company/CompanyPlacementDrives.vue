@@ -65,15 +65,17 @@ const submitReview = async (appId, status) => {
 
   if (res.ok) {
     alert(`Application updated to ${status}`)
-    // Refresh only the specific applicant in the local list
-    // applicants.value = applicants.value.map((a) =>
-    //   a.application_id === appId ? { ...a, status: status } : a,
-    // )
-    // Reset form
     reviewForm.value = { application_id: null, feedback: '', interview_date: '', status: '' }
     applicantsListModal.value = false
     applicantsActionModal.value = false
   }
+}
+const toggleJob = async (jobId) => {
+  await fetch(`http://localhost:5000/company/job/${jobId}/toggle-status`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  fetchJobs() // Refresh the main job table
 }
 
 onMounted(() => {

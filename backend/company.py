@@ -122,8 +122,8 @@ def process_application(appl_id):
     # { "status": "Shortlisted", "feedback": "Great resume", "interview_date": "2026-04-15T10:00" }
     application = Application.query.get_or_404(appl_id)
 
-    application.status = data.get("status", application.status)
-    application.feedback = data.get("feedback", application.feedback)
+    application.status = str(data.get("status", application.status)).lower()
+    application.feedback = str(data.get("feedback", application.feedback)).lower()
     if data.get("interview_date"):
         application.interview_date = datetime.fromisoformat(data["interview_date"])
 

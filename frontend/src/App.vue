@@ -5,7 +5,6 @@ import { useNotificationStore } from './stores/notificationStore'
 
 const store = useAuthStore()
 const notifStore = useNotificationStore()
-console.log(notifStore.notifications.length)
 </script>
 
 <template>
@@ -14,7 +13,7 @@ console.log(notifStore.notifications.length)
       <router-link class="navbar-brand" to="/">PlacementPortal</router-link>
 
       <div class="d-flex align-items-center">
-        <div class="dropdown me-3">
+        <!-- <div class="dropdown me-3">
           <button
             class="btn btn-outline-light position-relative"
             id="notifDrop"
@@ -56,10 +55,13 @@ console.log(notifStore.notifications.length)
               </button>
             </li>
           </ul>
-        </div>
+        </div> -->
 
-        <router-link to="/profile" class="btn btn-outline-info btn-sm me-2"
-          >Edit Profile</router-link
+        <!-- <router-link
+          v-if="store.role == 'student'"
+          to="/profile"
+          class="btn btn-outline-info btn-sm me-2"
+          >Edit Profile</router-link -->
         >
         <button v-if="store.token" class="btn btn-outline-light btn-sm me-3" @click="store.logout">
           Logout

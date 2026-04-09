@@ -2,13 +2,29 @@
 import { ref, onMounted } from 'vue'
 
 const jobs = ref([])
+const myApplications = ref([])
 const searchQuery = ref('')
+const studentDetails = ref({})
+
+const fetchStudentDetails = async () => {
+  const res = await fetch(`http://localhost:5000/student/profile`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  studentDetails.value = await res.json()
+}
 
 const fetchJobs = async () => {
   const res = await fetch(`http://localhost:5000/student/jobs?search=${searchQuery.value}`, {
     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
   })
   jobs.value = await res.json()
+}
+
+const fetchMyApplications = async () => {
+  const res = await fetch(`http://localhost:5000/student/applications`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  myApplications.value = await res.json()
 }
 
 const apply = async (jobId) => {
@@ -18,28 +34,36 @@ const apply = async (jobId) => {
   })
   const data = await res.json()
   alert(data.msg)
+  fetchJobs()
 }
 
-onMounted(fetchJobs)
+onMounted(() => {
+  fetchJobs()
+  fetchMyApplications()
+  fetchStudentDetails()
+})
 </script>
 
 <template>
   <div class="container mt-4">
-    <ul class="nav nav-pills mb-4">
-      <li class="nav-item">
-        <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#jobs">
-          Job Board
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#history">
-          My Applications
-        </button>
-      </li>
-      <li class="nav-item">
-        <button class="nav-link" data-bs-toggle="pill" data-bs-target="#profile">Profile</button>
-      </li>
-    </ul>
+    <header>
+      <ul class="nav nav-pills mb-4">
+        <li class="nav-item">
+          <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#jobs">
+            Job Board
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#history">
+            My Applications
+          </button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" data-bs-toggle="pill" data-bs-target="#profile">Profile</button>
+        </li>
+      </ul>
+    </header>
+
     <div class="container mt-4 tab-content">
       <div class="tab-pane fade show active" id="jobs">
         <div class="row">
@@ -76,7 +100,14 @@ onMounted(fetchJobs)
                   <span class="badge bg-light text-dark ms-2">Deadline: {{ job.deadline }}</span>
                 </div>
                 <div>
-                  <button @click="apply(job.id)" class="btn btn-primary px-4">Apply Now</button>
+                  <button
+                    @click="apply(job.id)"
+                    class="btn px-4 btn-sm"
+                    :class="job.has_applied ? 'btn-secondary' : 'btn-primary'"
+                    :disabled="job.has_applied"
+                  >
+                    {{ job.has_applied === true ? 'Applied' : 'Apply now' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -87,13 +118,58 @@ onMounted(fetchJobs)
 
     <div class="tab-content">
       <div class="tab-pane fade" id="history">
-        <div v-for="app in myApplications" :key="app.id" class="card mb-2">
+        <div>
+          <p>Student Name: {{ studentDetails.full_name }}</p>
+          <p>Branch: {{ studentDetails.branch }}</p>
+        </div>
+
+        <table class="table table-striped border-secondary">
+          <thead>
+            <th>Drive No.</th>
+            <th>Job Title</th>
+            <th>Company</th>
+            <th>Status</th>
+            <th>Remarks</th>
+            <th>Actions</th>
+          </thead>
+          <tbody>
+            <tr v-if="myApplications" v-for="appl in myApplications" :key="appl.id">
+              <td>{{ appl.id }}</td>
+              <td>{{ appl.job_title }}</td>
+              <td>{{ appl.company }}</td>
+              <td>
+                <span
+                  class="badge"
+                  :class="
+                    appl.status == 'rejected'
+                      ? `bg-danger`
+                      : appl.status == 'selected'
+                        ? `bg-success`
+                        : `bg-warning`
+                  "
+                  >{{ appl.status }}</span
+                >
+              </td>
+              <td>
+                <details>
+                  {{ appl.feedback ? appl.feedback : 'None' }}
+                </details>
+              </td>
+              <td>
+                <button v-if="appl.status == 'selected'" class="btn btn-sm btn-success">
+                  Download Placement Letter
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- <div v-for="app in myApplications" :key="app.id" class="card mb-2">
           <div class="card-body">
             <h6>{{ app.job_title }} at {{ app.company }}</h6>
-            <span :class="getStatusClass(app.status)">{{ app.status }}</span>
+            <span>{{ app.status }}</span>
             <p class="small mt-2">Feedback: {{ app.feedback }}</p>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <div class="tab-pane fade" id="profile">
