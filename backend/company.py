@@ -6,6 +6,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from helpers import save_file
 from extensions import cache
+from sqlalchemy.orm import joinedload
 
 company_bp = Blueprint("company", __name__)
 
@@ -85,11 +86,27 @@ def get_company_jobs():
 
 
 # APPLCIATIONS --------------------------------------------------------------------------
+@company_bp.route("/company/application/<int:appl_id>/", methods=["GET"])
+@company_required
+def get_appl_details(appl_id):
+    appl = Application.query.options(
+        joinedload(Application.student),
+        joinedload(Application.job_position).joinedload(JobPosition.company),
+    ).get_or_404(appl_id)
+    return jsonify(
+        {
+            "application_id": appl_id,
+            "status": appl.status,
+            "student_name": appl.student.full_name,
+            "branch": appl.student.branch,
+            "job_title": appl.job_position.title,
+        }
+    )
 
 
 @company_bp.route("/company/application/<int:appl_id>/status", methods=["POST"])
 @company_required
-def update_app_status(appl_id):
+def update_appl_status(appl_id):
     data = request.json  # Expecting {"status": "Shortlisted", "feedback": "..."}
     application = Application.query.get_or_404(appl_id)
     application.status = data["status"]
@@ -140,19 +157,6 @@ def get_job_applicants(job_id):
         return jsonify({"msg": "Unauthorized"}), 403
 
     apps = Application.query.filter_by(job_id=job_id).all()
-    print(
-        [
-            {
-                "application_id": a.id,
-                "student_name": a.student.full_name,
-                "cgpa": a.student.cgpa,
-                "status": a.status,
-                "applied_on": a.date_applied.strftime("%Y-%m-%d"),
-                "feedback": a.feedback,
-            }
-            for a in apps
-        ]
-    )
     return jsonify(
         [
             {

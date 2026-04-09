@@ -3,6 +3,7 @@ import { Modal } from 'bootstrap'
 import { ref, onMounted } from 'vue'
 import CompanyCreateDrive from './CompanyCreateDrive.vue'
 import BaseDropdown from '../base/BaseDropdown.vue'
+import CompanyPlacementDrives from './CompanyPlacementDrives.vue'
 
 const details = ref({})
 const myJobs = ref([])
@@ -115,10 +116,10 @@ const toggleJob = async (jobId) => {
   fetchJobs() // Refresh the main job table
 }
 
-onMounted(() => {
-  fetchDetails()
-  fetchJobs()
-})
+// onMounted(() => {
+//   fetchDetails()
+//   fetchJobs()
+// })
 </script>
 
 <template>
@@ -128,7 +129,9 @@ onMounted(() => {
       <CompanyCreateDrive @fetch-jobs="fetchJobs" />
     </div>
 
-    <div class="row">
+    <CompanyPlacementDrives />
+
+    <!-- <div class="row">
       <div class="col-md-12">
         <div class="card shadow-sm">
           <div class="card-header">Your Placement Drives</div>
@@ -173,9 +176,9 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
 
-    <div class="modal fade" id="applicantModal" tabindex="-1" aria-hidden="true">
+    <!-- <div class="modal fade" id="applicantModal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
@@ -246,6 +249,6 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
