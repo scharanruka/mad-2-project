@@ -1,9 +1,11 @@
+import os
 from datetime import datetime
 
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, send_from_directory, send_file
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from helpers import save_file
+
+# from helpers import save_file
 from extensions import cache
 
 from sqlalchemy.orm import joinedload
@@ -77,6 +79,21 @@ def get_available_jobs():
     )
 
 
+@student_bp.route("/student/details", methods=["GET"])
+@student_required
+def get_student_details():
+    user_id = get_jwt_identity()
+    student = Student.query.get_or_404(int(user_id))
+    return jsonify(
+        {
+            "full_name": student.full_name,
+            "branch": student.branch,
+            "skills": student.skills,
+            "resume_path": student.resume_path,
+        }
+    )
+
+
 @student_bp.route("/student/apply/<int:job_id>", methods=["POST"])
 @student_required
 def apply_to_job(job_id):
@@ -107,15 +124,10 @@ def apply_to_job(job_id):
 @student_required
 def get_my_applications():
     user_id = get_jwt_identity()
-
-    # query = Application.query.options(
-    #     joinedload(Application.job_position).joinedload(JobPosition.company),
-    #     joinedload(Application.student),
-    # )
     appls = (
-        Application.query.join(JobPosition)  # Joins Application to JobPosition
-        .join(Company)  # Joins JobPosition to Company
-        .filter(Application.student_id == user_id)  # Filter after the joins
+        Application.query.join(JobPosition)
+        .join(Company)
+        .filter(Application.student_id == user_id)
     )
     appls = appls.all()
     data = [
@@ -128,14 +140,38 @@ def get_my_applications():
         }
         for a in appls
     ]
-    print(data)
     return jsonify(data)
 
 
+@student_bp.route(
+    "/student/applications/<int:appl_id>/generate-offer", methods=["POST"]
+)
+@student_required
+def trigger_offer_pdf(appl_id):
+    application = Application.query.get_or_404(appl_id)
+    if application.status != "selected":
+        return jsonify({"msg": "Offer letter not available"}), 403
+
+    from tasks import generate_offer_letter_pdf
+
+    task = generate_offer_letter_pdf.delay(appl_id)
+    return jsonify({"task_id": task.id, "msg": "Generating your offer letter..."}), 202
+
+
+@student_bp.route("/student/download-offer/<int:app_id>", methods=["GET"])
+@student_required
+def download_offer(app_id):
+    return send_from_directory("exports", f"offer_{app_id}.pdf", as_attachment=True)
+
+
 # Profile Editing ----------------------------------------------------------------------------------
+
+
 @student_bp.route("/student/profile", methods=["PUT"])
 @student_required
 def update_student_profile():
+    from app import app
+
     user_id = get_jwt_identity()
     student = Student.query.get(int(user_id))
 
@@ -146,27 +182,47 @@ def update_student_profile():
 
     # Handle Resume Upload
     if "resume" in request.files:
-        path = save_file(request.files["resume"], "resumes")
-        student.resume_path = path
-        db.session.commit()
-        # Trigger background OCR
-        from tasks import process_resume_ocr
+        file = request.files["resume"]
+        filename = f"resume_std_{student.id}.pdf"
+        upload_dir = os.path.join(app.config["UPLOAD_FOLDER"], "resumes", filename)
 
-        process_resume_ocr.delay(student.id, path)
+        os.makedirs(upload_dir, exist_ok=True)
+
+        path = os.path.join(upload_dir, filename)
+
+        file.save(path)
+        student.resume_path = path
+        # Trigger background OCR
+        # from tasks import process_resume_ocr
+
+        # process_resume_ocr.delay(student.id, path)
 
     db.session.commit()
     return jsonify({"msg": "Profile updated successfully"})
 
 
-@student_bp.route("/student/profile", methods=["GET"])
-@student_required
-def get_student_details():
-    user_id = get_jwt_identity()
-    student = Student.query.get(int(user_id))
+# Secure Resume Viewing for Companies
+@student_bp.route("/view-resume/<int:student_id>", methods=["GET"])
+@jwt_required()
+def view_resume(student_id):
+    current_user = User.query.get(get_jwt_identity())
+    student = Student.query.get_or_404(student_id)
 
-    return jsonify(
-        {"id": student.id, "full_name": student.full_name, "branch": student.branch}
-    )
+    # Logic: Admin can see all; Company only if student applied
+    if current_user.role == "admin":
+        return send_file(student.resume_path)
+
+    if current_user.role == "company":
+        applied = Application.query.filter_by(
+            student_id=student_id, job_id=JobPosition.company_id == current_user.id
+        ).first()
+        if applied:
+            return send_file(student.resume_path)
+
+    return jsonify({"msg": "Unauthorized"}), 403
+
+
+# -------------------------
 
 
 # Async Tasks ------------------------
@@ -174,8 +230,23 @@ def get_student_details():
 @student_required
 def trigger_export():
     user_id = get_jwt_identity()
-    # Trigger Celery task asynchronously
-    task = ""  # export_applications_csv.delay(int(user_id))
+    from tasks import export_applications_csv
+
+    task = export_applications_csv.delay(user_id)
     return jsonify(
         {"msg": "Export started. You will be notified when ready.", "task_id": task.id}
     ), 202
+
+
+@student_bp.route("/student/download-export/<task_id>", methods=["GET"])
+@student_required
+def download_export(task_id):
+    # Retrieve the student ID from JWT to ensure they only download their own files
+    user_id = get_jwt_identity()
+    filename = f"applications_student_{user_id}.csv"
+
+    # Check if file exists in your exports volume
+    if not os.path.exists(os.path.join("exports", filename)):
+        return jsonify({"msg": "File not found"}), 404
+
+    return send_from_directory("exports", filename, as_attachment=True)

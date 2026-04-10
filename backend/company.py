@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, send_from_directory
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
@@ -29,7 +29,7 @@ def company_required(fn):
     return wrapper
 
 
-# ------------------------
+# ------------------------------------------------------------------------------------
 @company_bp.route("/company/details", methods=["GET", "POST"])
 @company_required
 def get_change_company_details():
@@ -201,3 +201,23 @@ def update_company_profile():
 
     db.session.commit()
     return jsonify({"msg": "Company profile updated"})
+
+
+# Export History -------------------------------
+@company_bp.route("/company/export-history", methods=["POST"])
+@company_required
+def trigger_company_export():
+    print("Export history clicked!")
+    user_id = get_jwt_identity()
+    from tasks import export_company_history_csv
+
+    task = export_company_history_csv.delay(int(user_id))
+    return jsonify({"task_id": task.id, "msg": "Company export started..."}), 202
+
+
+@company_bp.route("/company/download-export/<task_id>", methods=["GET"])
+@company_required
+def download_company_export(task_id):
+    user_id = get_jwt_identity()
+    filename = f"company_history_{user_id}.csv"
+    return send_from_directory("exports", filename, as_attachment=True)

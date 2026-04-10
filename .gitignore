@@ -13,3 +13,6 @@ dist/
 # Docker/System
 .DS_Store
 *.db
+
+backend/exports
+backend/uploads

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import StudentProfile from '@/components/student/StudentProfile.vue'
 
 const jobs = ref([])
 const myApplications = ref([])
@@ -42,6 +43,78 @@ onMounted(() => {
   fetchMyApplications()
   fetchStudentDetails()
 })
+
+const handleOfferDownload = async (applId) => {
+  console.log('clicked')
+  const res = await fetch(`http://localhost:5000/student/applications/${applId}/generate-offer`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  const { task_id } = await res.json()
+
+  // Poll for completion
+  const interval = setInterval(async () => {
+    const statusRes = await fetch(`http://localhost:5000/task-status/${task_id}`)
+    const { status } = await statusRes.json()
+
+    if (status === 'SUCCESS') {
+      clearInterval(interval)
+      const fileRes = await fetch(`http://localhost:5000/student/download-offer/${applId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+
+      const blob = await fileRes.blob()
+
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Offer Letter.pdf`
+      document.body.appendChild(a)
+      a.click()
+
+      //  Cleanup
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    }
+  }, 2000)
+}
+
+const triggerCSVExport = async () => {
+  const res = await fetch('http://localhost:5000/student/export-applications', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+  })
+  const { task_id, msg } = await res.json()
+
+  const interval = setInterval(async () => {
+    const statusRes = await fetch(`http://localhost:5000/task-status/${task_id}`)
+    const { status } = await statusRes.json()
+
+    if (status === 'SUCCESS') {
+      clearInterval(interval)
+
+      // 1. Fetch the generated CSV using the Auth header
+      const downloadRes = await fetch(`http://localhost:5000/student/download-export/${task_id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      })
+
+      // 2. Convert the response to a Blob (Binary Large Object)
+      const blob = await downloadRes.blob()
+
+      // 3. Create a hidden <a> tag to trigger the browser's save dialog
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `Application_History_${new Date().toLocaleDateString()}.csv`)
+      document.body.appendChild(link)
+      link.click()
+
+      // 4. Cleanup to prevent memory leaks
+      link.parentNode.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    }
+  }, 3000)
+}
 </script>
 
 <template>
@@ -118,19 +191,26 @@ onMounted(() => {
 
     <div class="tab-content">
       <div class="tab-pane fade" id="history">
-        <div>
-          <p>Student Name: {{ studentDetails.full_name }}</p>
-          <p>Branch: {{ studentDetails.branch }}</p>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <p>Student Name: {{ studentDetails.full_name }}</p>
+            <p>Branch: {{ studentDetails.branch }}</p>
+          </div>
+          <button @click="triggerCSVExport" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export History (CSV)
+          </button>
         </div>
 
         <table class="table table-striped border-secondary">
           <thead>
-            <th>Drive No.</th>
-            <th>Job Title</th>
-            <th>Company</th>
-            <th>Status</th>
-            <th>Remarks</th>
-            <th>Actions</th>
+            <tr>
+              <th>Drive No.</th>
+              <th>Job Title</th>
+              <th>Company</th>
+              <th>Status</th>
+              <th>Remarks</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             <tr v-if="myApplications" v-for="appl in myApplications" :key="appl.id">
@@ -156,31 +236,20 @@ onMounted(() => {
                 </details>
               </td>
               <td>
-                <button v-if="appl.status == 'selected'" class="btn btn-sm btn-success">
+                <button
+                  @click="handleOfferDownload(appl.id)"
+                  v-if="appl.status == 'selected'"
+                  class="btn btn-sm btn-success"
+                >
                   Download Placement Letter
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
-        <!-- <div v-for="app in myApplications" :key="app.id" class="card mb-2">
-          <div class="card-body">
-            <h6>{{ app.job_title }} at {{ app.company }}</h6>
-            <span>{{ app.status }}</span>
-            <p class="small mt-2">Feedback: {{ app.feedback }}</p>
-          </div>
-        </div> -->
-      </div>
-
-      <div class="tab-pane fade" id="profile">
-        <form @submit.prevent="updateProfile" enctype="multipart/form-data">
-          <div class="mb-3">
-            <label>Resume (PDF)</label>
-            <input type="file" @change="onFileChange" class="form-control" accept=".pdf" />
-          </div>
-          <button type="submit" class="btn btn-primary">Update Profile</button>
-        </form>
       </div>
     </div>
+
+    <StudentProfile />
   </div>
 </template>

@@ -53,7 +53,7 @@ def seed_data():
         )
         s2 = Student(
             id=student2_u.id,
-            full_name="John Doe",
+            full_name="Rahul",
             cgpa=7.2,
             branch="Computer Science",
             skills="Java, SQL",

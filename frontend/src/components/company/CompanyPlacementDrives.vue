@@ -87,7 +87,7 @@ onMounted(() => {
   <div class="row">
     <div class="col-md-12">
       <div class="card shadow-sm">
-        <div class="card-header"><h3>Your Placement Drives</h3></div>
+        <!-- <div class="card-header"><h3>Your Placement Drives</h3></div> -->
         <div class="card-body p-0">
           <table class="table table-hover mb-0">
             <thead>
