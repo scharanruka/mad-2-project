@@ -1,10 +1,9 @@
 from datetime import datetime
 
-from flask import jsonify, request, Blueprint, send_from_directory
+from flask import jsonify, request, Blueprint, send_from_directory, send_file
 from models import db, User, Student, Company, JobPosition, Application
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from helpers import save_file
 from extensions import cache
 from sqlalchemy.orm import joinedload
 
@@ -171,6 +170,27 @@ def get_job_applicants(job_id):
     )
 
 
+# Secure Resume Viewing for Companies
+@company_bp.route("/view-resume/<int:student_id>", methods=["GET"])
+@jwt_required()
+def view_resume(student_id):
+    current_user = User.query.get(get_jwt_identity())
+    student = Student.query.get_or_404(student_id)
+
+    # Logic: Admin can see all; Company only if student applied
+    if current_user.role == "admin":
+        return send_file(student.resume_path)
+
+    if current_user.role == "company":
+        applied = Application.query.filter_by(
+            student_id=student_id, job_id=JobPosition.company_id == current_user.id
+        ).first()
+        if applied:
+            return send_file(student.resume_path)
+
+    return jsonify({"msg": "Unauthorized"}), 403
+
+
 # Close or Re-open a Job Drive
 @company_bp.route("/company/job/<int:job_id>/toggle-status", methods=["POST"])
 @company_required
@@ -193,11 +213,6 @@ def update_company_profile():
 
     company.name = request.form.get("name", company.name)
     company.description = request.form.get("description", company.description)
-
-    if "logo" in request.files:
-        # Assuming you add a 'logo_path' column to Company model
-        path = save_file(request.files["logo"], "logos")
-        company.logo_path = path
 
     db.session.commit()
     return jsonify({"msg": "Company profile updated"})

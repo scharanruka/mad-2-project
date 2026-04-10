@@ -8,7 +8,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 # from helpers import save_file
 from extensions import cache
 
-from sqlalchemy.orm import joinedload
 
 student_bp = Blueprint("student", __name__)
 
@@ -35,7 +34,7 @@ def student_required(fn):
 
 
 @student_bp.route("/student/jobs", methods=["GET"])
-# @cache.cached(timeout=3600)
+@cache.cached(timeout=300, query_string=True)
 @student_required
 def get_available_jobs():
     user_id = get_jwt_identity()
@@ -55,6 +54,7 @@ def get_available_jobs():
         query = query.filter(
             (JobPosition.title.contains(search))
             | (JobPosition.description.contains(search))
+            | (Company.name.contains(search))
         )
 
     jobs = query.all()
@@ -199,27 +199,6 @@ def update_student_profile():
 
     db.session.commit()
     return jsonify({"msg": "Profile updated successfully"})
-
-
-# Secure Resume Viewing for Companies
-@student_bp.route("/view-resume/<int:student_id>", methods=["GET"])
-@jwt_required()
-def view_resume(student_id):
-    current_user = User.query.get(get_jwt_identity())
-    student = Student.query.get_or_404(student_id)
-
-    # Logic: Admin can see all; Company only if student applied
-    if current_user.role == "admin":
-        return send_file(student.resume_path)
-
-    if current_user.role == "company":
-        applied = Application.query.filter_by(
-            student_id=student_id, job_id=JobPosition.company_id == current_user.id
-        ).first()
-        if applied:
-            return send_file(student.resume_path)
-
-    return jsonify({"msg": "Unauthorized"}), 403
 
 
 # -------------------------

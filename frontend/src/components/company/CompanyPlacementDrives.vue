@@ -78,6 +78,8 @@ const toggleJob = async (jobId) => {
   fetchJobs() // Refresh the main job table
 }
 
+const viewStudentResume = async (student_id) => {}
+
 onMounted(() => {
   fetchJobs()
 })

@@ -116,7 +116,7 @@ const triggerCSVExport = async () => {
   }, 3000)
 }
 </script>
-
+<!-- TODO: View Details for Job Position -->
 <template>
   <div class="container mt-4">
     <header>
@@ -147,7 +147,7 @@ const triggerCSVExport = async () => {
                 v-model="searchQuery"
                 @input="fetchJobs"
                 class="form-control mb-3"
-                placeholder="Search title or skills..."
+                placeholder="Search title, company or skills..."
               />
               <p class="small text-muted">
                 Showing active placement drives approved by the Institute.

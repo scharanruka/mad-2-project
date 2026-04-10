@@ -1,6 +1,7 @@
 <script setup>
 import BaseModal from '@/components/base/BaseModal.vue'
 import { useAuthStore } from '@/stores/auth'
+import { openResume } from '@/utils/fileViewer'
 import { ref, onMounted } from 'vue'
 
 const authStore = useAuthStore()
@@ -81,6 +82,12 @@ onMounted(() => {
         <h5>Branch: {{ applicationDetails.branch }}</h5>
         <h5>Drive: {{ applicationDetails.posting_id }}</h5>
         <h5>Title: {{ applicationDetails.posting_title }}</h5>
+        <button
+          @click="openResume(applicationDetails.student_id)"
+          class="btn btn-sm btn-outline-primary"
+        >
+          View Resume
+        </button>
       </div>
     </template>
   </BaseModal>

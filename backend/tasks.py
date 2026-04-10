@@ -1,21 +1,21 @@
 import os
 from datetime import datetime, timedelta
-from celery import Celery, shared_task
+from celery import Celery
 from celery.schedules import crontab
 
-from models import db, Student, Application, JobPosition, Company
-from app import app
+from models import db, Student, Application, JobPosition, Company, User
+from app import app, mail
 
 import csv
-import pytesseract
-from pdf2image import convert_from_path
-
+# import pytesseract
+# from pdf2image import convert_from_path
 # from sqlalchemy.orm import joinedload
 
 from flask import render_template
 from weasyprint import HTML
 
-from flask_mail import Mail, Message
+from flask_mail import Message
+
 
 celery = Celery(
     "tasks", broker="redis://localhost:6379/0", backend="redis://localhost:6379/0"
@@ -34,32 +34,36 @@ celery.conf.beat_schedule = {
 }
 
 
-@celery.task
-def process_resume_ocr(student_id, file_path):
-    with app.app_context():
-        student = Student.query.get(student_id)
-        try:
-            # PDF -> Images
-            images = convert_from_path(file_path)
-            extracted_text = ""
-            for img in images:
-                extracted_text += pytesseract.image_to_string(img)
-            student.resume_text = extracted_text
-            db.session.commit()
-        except Exception as e:
-            return str(e)
+# @celery.task
+# def process_resume_ocr(student_id, file_path):
+#     with app.app_context():
+#         student = Student.query.get(student_id)
+#         try:
+#             images = convert_from_path(file_path)
+#             extracted_text = ""
+#             for img in images:
+#                 extracted_text += pytesseract.image_to_string(img)
+#             student.resume_text = extracted_text
+#             db.session.commit()
+#         except Exception as e:
+#             return str(e)
 
 
 @celery.task(name="tasks.send_interview_reminders")
 def send_interview_reminders():
     with app.app_context():
         tomorrow = datetime.now() + timedelta(days=1)
-        apps = Application.query.filter(
-            Application.status == "accepted",
-            db.func.date(Application.interview_date) == tomorrow.date(),
-        ).all()
+        appls = (
+            Application.query.join(Student)
+            .join(User)
+            .filter(
+                Application.status == "selected",
+                db.func.date(Application.interview_date) == tomorrow.date(),
+            )
+            .all()
+        )
 
-        for a in apps:
+        for a in appls:
             msg = Message("Interview Reminder", recipients=[a.student.user.email])
             msg.body = f"Hi {a.student.full_name}, you have an interview for {a.job.title} at {a.job.company.name} tomorrow."
             mail.send(msg)
@@ -68,15 +72,20 @@ def send_interview_reminders():
 @celery.task(name="tasks.generate_monthly_report")
 def generate_monthly_report():
     with app.app_context():
-        # Calculate stats for the previous month
         total_placed = Application.query.filter_by(status="selected").count()
         active_drives = JobPosition.query.filter_by(status="ongoing").count()
 
-        # Simple HTML report
         report_html = f"<h1>Monthly Placement Report</h1><p>Students Placed: {total_placed}</p><p>Active Drives: {active_drives}</p>"
-        msg = Message("Monthly Placement Activity", recipients=["admin@iitm.ac.in"])
-        msg.html = report_html
+        msg = Message(
+            subject="Monthly Placement Activity",
+            sender=app.config["MAIL_USERNAME"],
+            recipients=[app.config["MAIL_USERNAME"]],  # "admin@iitm.ac.in",
+            html=report_html,
+        )
         mail.send(msg)
+        print("Generated and sent report!")
+        print(f"DEBUG: Mail Server: {app.config['MAIL_SERVER']}")
+        print(f"DEBUG: Suppress Send: {app.config['MAIL_SUPPRESS_SEND']}")
 
 
 @celery.task
@@ -103,7 +112,6 @@ def export_applications_csv(student_id):
                     ]
                 )
 
-        # Here you would trigger a notification/alert
         return filename
 
 
@@ -158,15 +166,9 @@ def generate_offer_letter_pdf(application_id):
             "date": datetime.now().strftime("%d %B %Y"),
         }
 
-        # Render HTML to String
         html_content = render_template("offer_letter_template.html", **data)
 
-        # Save PDF to exports folder
         filepath = os.path.join("exports", f"offer_{application_id}.pdf")
         HTML(string=html_content).write_pdf(filepath)
 
         return filepath
-
-
-# Email Service -------------------------------------------------------------------------------------------------------------
-mail = Mail(app)

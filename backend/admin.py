@@ -225,6 +225,7 @@ def get_application_details(appl_id):
         {
             "id": appl.id,
             "sname": student.full_name,
+            "student_id": appl.student_id,
             "branch": student.branch,
             "posting_id": job_position.id,
             "posting_title": job_position.title,
